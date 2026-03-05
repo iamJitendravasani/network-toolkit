@@ -275,6 +275,21 @@
     <div class="nav-section">
       <div class="nav-label">Cisco</div>
       <div class="nav-item cisco" onclick="navigate('cisco_switch')"><span class="nav-dot"></span>Switch Config</div>
+      <div class="nav-item cisco" onclick="navigate('cisco_acl')"><span class="nav-dot"></span>ACL Builder</div>
+      <div class="nav-item cisco" onclick="navigate('cisco_hsrp')"><span class="nav-dot"></span>HSRP / VRRP</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Network Tools</div>
+      <div class="nav-item" onclick="navigate('subnet_calc')"><span class="nav-dot"></span>Subnet Calculator</div>
+      <div class="nav-item" onclick="navigate('ip_planner')"><span class="nav-dot"></span>IP / VLAN Planner</div>
+      <div class="nav-item" onclick="navigate('pass_gen')"><span class="nav-dot"></span>Password Generator</div>
+      <div class="nav-item" onclick="navigate('pass_hash')"><span class="nav-dot"></span>OpenSSL Hash</div>
+      <div class="nav-item" onclick="navigate('wildcard')"><span class="nav-dot"></span>Wildcard Converter</div>
+      <div class="nav-item" onclick="navigate('ip_range')"><span class="nav-dot"></span>IP Range Expander</div>
+      <div class="nav-item" onclick="navigate('nat_builder')"><span class="nav-dot"></span>NAT Rule Builder</div>
+      <div class="nav-item" onclick="navigate('sic_reset')"><span class="nav-dot"></span>SIC Reset</div>
+      <div class="nav-item" onclick="navigate('change_request')"><span class="nav-dot"></span>Change Request</div>
+      <div class="nav-item" onclick="navigate('theme_toggle')" id="nav-theme" style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px;"><span class="nav-dot"></span>🌙 Dark Mode</div>
     </div>
   </nav>
 
@@ -307,6 +322,21 @@
       <div class="section-title" style="margin-top:22px;">Cisco</div>
       <div class="home-grid">
         <div class="home-tile cisco" onclick="navigate('cisco_switch')"><span class="tile-tag cisco">Cisco</span><div class="tile-name">Switch Config Generator</div><div class="tile-desc">Full IOS switch config with VLANs, SSH, spanning-tree, trunk and port-channel.</div></div>
+        <div class="home-tile cisco" onclick="navigate('cisco_acl')"><span class="tile-tag cisco">Cisco</span><div class="tile-name">ACL Builder</div><div class="tile-desc">Build standard and extended ACLs with permit/deny rules, wildcard masks and remarks.</div></div>
+        <div class="home-tile cisco" onclick="navigate('cisco_hsrp')"><span class="tile-tag cisco">Cisco</span><div class="tile-name">HSRP / VRRP Config</div><div class="tile-desc">Generate first-hop redundancy configs for active/standby gateway pairs.</div></div>
+      </div>
+      <div class="section-title" style="margin-top:22px;">Network Tools</div>
+      <div class="home-grid">
+        <div class="home-tile cp" onclick="navigate('subnet_calc')"><span class="tile-tag cp">Tools</span><div class="tile-name">Subnet Calculator</div><div class="tile-desc">CIDR to subnet mask, usable hosts, network & broadcast address with live output.</div></div>
+        <div class="home-tile cp" onclick="navigate('ip_planner')"><span class="tile-tag cp">Tools</span><div class="tile-name">IP / VLAN Planner</div><div class="tile-desc">Enter VLAN count & hosts per VLAN — auto-generates supernet and per-VLAN subnets with live editing.</div></div>
+        <div class="home-tile cp" onclick="navigate('pass_gen')"><span class="tile-tag cp">Tools</span><div class="tile-name">Password Generator</div><div class="tile-desc">Generate complex passwords with custom length, character sets, and strength indicator.</div></div>
+        <div class="home-tile cp" onclick="navigate('pass_hash')"><span class="tile-tag cp">Tools</span><div class="tile-name">OpenSSL Hash</div><div class="tile-desc">Generate crypt-format hashes matching <code style="color:var(--accent)">openssl passwd -1/-5/-6</code> with MD5, SHA-256, SHA-512.</div></div>
+        <div class="home-tile cp" onclick="navigate('wildcard')"><span class="tile-tag cp">Tools</span><div class="tile-name">Wildcard Converter</div><div class="tile-desc">Instantly convert subnet masks ↔ wildcard masks. Essential for ACL and firewall rule building.</div></div>
+        <div class="home-tile cp" onclick="navigate('ip_range')"><span class="tile-tag cp">Tools</span><div class="tile-name">IP Range Expander</div><div class="tile-desc">Enter a range like <code style="color:var(--accent)">10.0.0.1–10.0.0.50</code> and get every IP listed, ready for bulk object creation.</div></div>
+        <div class="home-tile cp" onclick="navigate('nat_builder')"><span class="tile-tag cp">Checkpoint</span><div class="tile-name">NAT Rule Builder</div><div class="tile-desc">Generate <code style="color:var(--accent)">add nat-rule</code> commands for hide NAT and static NAT policies.</div></div>
+        <div class="home-tile cp" onclick="navigate('sic_reset')"><span class="tile-tag cp">Checkpoint</span><div class="tile-name">SIC Reset</div><div class="tile-desc">Generate SIC reset and re-initialise commands for gateways and management servers.</div></div>
+        <div class="home-tile cp" onclick="navigate('change_request')"><span class="tile-tag cp">Tools</span><div class="tile-name">Change Request Template</div><div class="tile-desc">Fill in a structured network change request and export it as plain text or copy to clipboard.</div></div>
+        <div class="home-tile cp" onclick="toggleTheme()" style="cursor:pointer;"><span class="tile-tag cp">UI</span><div class="tile-name" id="theme-tile-label">🌙 Switch to Light Mode</div><div class="tile-desc">Toggle between dark and light themes for comfortable viewing.</div></div>
       </div>
     </div>
 
@@ -850,6 +880,526 @@
           <span class="output-line-count" id="sw-linecount"></span>
         </div>
         <div class="output-body cisco-color" id="sw-output"></div>
+      </div>
+    </div>
+
+    <!-- SUBNET CALCULATOR -->
+    <div id="page-subnet_calc" class="page">
+      <div class="page-header">
+        <div class="page-header-left">
+          <div class="page-title">Subnet Calculator</div>
+          <div class="page-desc">Enter an IP and prefix length — get full subnet details instantly.</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Input</div>
+        <div class="form-grid form-grid-2">
+          <div class="field"><label>IP Address / CIDR (e.g. 10.0.0.0/24)</label><input type="text" id="sc-cidr" placeholder="10.0.0.0/24" oninput="calcSubnet()"></div>
+          <div class="field"><label>Or enter Subnet Mask separately</label><input type="text" id="sc-mask" placeholder="255.255.255.0" oninput="calcSubnetFromMask()"></div>
+        </div>
+      </div>
+      <div class="card" id="sc-results" style="display:none;">
+        <div class="card-title green">Results</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;" id="sc-grid"></div>
+      </div>
+      <div class="card" id="sc-hosts-card" style="display:none;">
+        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+          <span>Usable Host Range</span>
+          <button class="btn btn-ghost btn-sm" onclick="toggleHostList()">Show All Hosts</button>
+        </div>
+        <div id="sc-hostlist" style="display:none;max-height:200px;overflow-y:auto;margin-top:8px;">
+          <div class="output-body" id="sc-hostlist-body" style="max-height:180px;font-size:11px;"></div>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--text-dim);" id="sc-summary"></div>
+      </div>
+    </div>
+
+    <!-- IP / VLAN PLANNER -->
+    <div id="page-ip_planner" class="page">
+      <div class="page-header">
+        <div class="page-header-left">
+          <div class="page-title">IP / VLAN Planner</div>
+          <div class="page-desc">Define your VLANs and host requirements — auto-generates a non-overlapping supernet plan.</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Supernet Settings</div>
+        <div class="form-grid form-grid-3">
+          <div class="field"><label>Starting Network (e.g. 10.0.0.0)</label><input type="text" id="vp-base" placeholder="10.0.0.0" oninput="planVLANs()"></div>
+          <div class="field"><label>Number of VLANs</label><input type="text" id="vp-count" placeholder="4" oninput="syncVLANRows()"></div>
+          <div class="field"><label>Default Hosts per VLAN</label><input type="text" id="vp-defhosts" placeholder="50" oninput="planVLANs()"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title green">VLAN Definitions <span class="card-count" id="vp-vlan-count">0</span></div>
+        <div id="vp-vlan-rows"></div>
+      </div>
+      <div class="card" id="vp-results" style="display:none;">
+        <div class="card-title">Supernet Summary</div>
+        <div id="vp-supernet-info" style="font-size:12px;color:var(--accent);margin-bottom:12px;"></div>
+        <div style="overflow-x:auto;">
+          <table id="vp-table" style="width:100%;border-collapse:collapse;font-size:12px;">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border2);">
+                <th style="text-align:left;padding:6px 10px;color:var(--text-dim);font-family:'Syne',sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;">VLAN</th>
+                <th style="text-align:left;padding:6px 10px;color:var(--text-dim);font-family:'Syne',sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;">Name</th>
+                <th style="text-align:left;padding:6px 10px;color:var(--text-dim);font-family:'Syne',sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;">Hosts Needed</th>
+                <th style="text-align:left;padding:6px 10px;color:var(--text-dim);font-family:'Syne',sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;">Subnet</th>
+                <th style="text-align:left;padding:6px 10px;color:var(--text-dim);font-family:'Syne',sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;">Mask</th>
+                <th style="text-align:left;padding:6px 10px;color:var(--text-dim);font-family:'Syne',sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;">Gateway</th>
+                <th style="text-align:left;padding:6px 10px;color:var(--text-dim);font-family:'Syne',sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;">Broadcast</th>
+                <th style="text-align:left;padding:6px 10px;color:var(--text-dim);font-family:'Syne',sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;">Usable Hosts</th>
+              </tr>
+            </thead>
+            <tbody id="vp-tbody"></tbody>
+          </table>
+        </div>
+        <div class="btn-row" style="margin-top:14px;">
+          <button class="btn btn-success" onclick="copyVLANTable()">⎘ Copy as Text</button>
+          <button class="btn btn-primary" onclick="downloadVLANPlan()">↓ Download CSV</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASSWORD GENERATOR -->
+    <div id="page-pass_gen" class="page">
+      <div class="page-header">
+        <div class="page-header-left">
+          <div class="page-title">Password Generator</div>
+          <div class="page-desc">Generate strong, complex passwords with full control over character sets.</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Parameters</div>
+        <div class="form-grid form-grid-3">
+          <div class="field"><label>Length</label><input type="text" id="pg-len" value="24" oninput="generatePassword()"></div>
+          <div class="field"><label>Count (generate multiple)</label><input type="text" id="pg-count" value="5" oninput="generatePassword()"></div>
+          <div class="field"><label>Exclude Ambiguous (0,O,l,1,I)</label><select id="pg-noambig" onchange="generatePassword()"><option value="yes">Yes</option><option value="no">No</option></select></div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:16px;margin-top:14px;">
+          <label style="text-transform:none;letter-spacing:0;font-size:12px;color:var(--text);display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="pg-upper" checked onchange="generatePassword()"> Uppercase (A-Z)</label>
+          <label style="text-transform:none;letter-spacing:0;font-size:12px;color:var(--text);display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="pg-lower" checked onchange="generatePassword()"> Lowercase (a-z)</label>
+          <label style="text-transform:none;letter-spacing:0;font-size:12px;color:var(--text);display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="pg-num" checked onchange="generatePassword()"> Numbers (0-9)</label>
+          <label style="text-transform:none;letter-spacing:0;font-size:12px;color:var(--text);display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="pg-sym" checked onchange="generatePassword()"> Symbols (!@#$%^&*)</label>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title green">Generated Passwords</div>
+        <div id="pg-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+        <div class="btn-row">
+          <button class="btn btn-success" onclick="generatePassword()">↻ Regenerate</button>
+          <button class="btn btn-ghost" onclick="copyAllPasswords()">⎘ Copy All</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASSWORD HASH -->
+    <div id="page-pass_hash" class="page">
+      <div class="page-header">
+        <div class="page-header-left">
+          <div class="page-title">OpenSSL Password Hash</div>
+          <div class="page-desc">Generates crypt-format hashes matching <code>openssl passwd -1 / -5 / -6</code> — output is <code>$id$salt$hash</code>.</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Hash Password</div>
+        <div class="form-grid form-grid-2">
+          <div class="field"><label>Password</label><input type="text" id="ph-plain" placeholder="Enter your password" oninput="updateCryptHash()"></div>
+          <div class="field"><label>Algorithm</label><select id="ph-algo" onchange="updateCryptHash()">
+            <option value="md5crypt">MD5-crypt  ($1$)  —  openssl passwd -1</option>
+            <option value="sha256crypt">SHA-256-crypt  ($5$)  —  openssl passwd -5</option>
+            <option value="sha512crypt" selected>SHA-512-crypt  ($6$)  —  openssl passwd -6</option>
+          </select></div>
+          <div class="field"><label>Salt <span style="color:var(--text-dim);font-size:9px;">(max 8 chars for MD5 · max 16 for SHA · auto-generated if blank)</span></label>
+            <input type="text" id="ph-salt" placeholder="Leave blank to auto-generate" oninput="updateCryptHash()"></div>
+          <div class="field" style="display:flex;align-items:flex-end;gap:8px;">
+            <button class="btn btn-primary" style="flex:1;" onclick="generateSalt()">⚡ Generate Salt</button>
+            <button class="btn btn-ghost btn-sm" onclick="clearSalt()">✕ Clear</button>
+          </div>
+        </div>
+        <div id="ph-salt-result" style="margin-top:14px;display:none;">
+          <div style="margin-bottom:10px;">
+            <label style="font-size:10px;letter-spacing:0.07em;text-transform:uppercase;color:var(--text-dim);font-family:'Syne',sans-serif;font-weight:600;">Salt Used</label>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+              <div id="ph-salt-display" style="flex:1;background:var(--output-bg);border:1px solid var(--border);border-radius:3px;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--warn);word-break:break-all;"></div>
+              <button class="btn btn-ghost btn-sm" onclick="safeCopy('ph-salt-display')">⎘</button>
+            </div>
+          </div>
+          <div style="margin-bottom:10px;">
+            <label style="font-size:10px;letter-spacing:0.07em;text-transform:uppercase;color:var(--text-dim);font-family:'Syne',sans-serif;font-weight:600;">Equivalent OpenSSL Command</label>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+              <div id="ph-openssl-cmd" style="flex:1;background:var(--output-bg);border:1px solid var(--border);border-radius:3px;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);word-break:break-all;"></div>
+              <button class="btn btn-ghost btn-sm" onclick="safeCopy('ph-openssl-cmd')">⎘</button>
+            </div>
+          </div>
+          <div>
+            <label style="font-size:10px;letter-spacing:0.07em;text-transform:uppercase;color:var(--text-dim);font-family:'Syne',sans-serif;font-weight:600;">Hashed Output  ($id$salt$hash)</label>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+              <div id="ph-salted-string" style="flex:1;background:var(--output-bg);border:1px solid var(--border);border-radius:3px;padding:8px 12px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent2);word-break:break-all;"></div>
+              <button class="btn btn-ghost btn-sm" onclick="safeCopy('ph-salted-string')">⎘ Copy Hash</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="info-box" style="margin-top:4px;">ℹ Output matches exactly what <code>openssl passwd</code> produces. Use directly in Checkpoint Gaia expert password hash fields, Linux <code>/etc/shadow</code>, or any system accepting crypt(3) format.</div>
+    </div>
+
+    <!-- WILDCARD CONVERTER -->
+    <div id="page-wildcard" class="page">
+      <div class="page-header">
+        <div class="page-header-left">
+          <div class="page-title">Wildcard Mask Converter</div>
+          <div class="page-desc">Convert subnet masks ↔ wildcard masks instantly. Essential for ACL and firewall rules.</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Convert</div>
+        <div class="form-grid form-grid-2">
+          <div class="field">
+            <label>Subnet Mask → Wildcard</label>
+            <input type="text" id="wc-subnet" placeholder="e.g. 255.255.255.0" oninput="subnetToWildcard()">
+          </div>
+          <div class="field">
+            <label>Result — Wildcard Mask</label>
+            <div style="display:flex;gap:8px;">
+              <div id="wc-result1" style="flex:1;background:var(--output-bg);border:1px solid var(--border);border-radius:3px;padding:7px 10px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent2);min-height:32px;"></div>
+              <button class="btn btn-ghost btn-sm" onclick="safeCopy('wc-result1')">⎘</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Wildcard Mask → Subnet</label>
+            <input type="text" id="wc-wild" placeholder="e.g. 0.0.0.255" oninput="wildcardToSubnet()">
+          </div>
+          <div class="field">
+            <label>Result — Subnet Mask</label>
+            <div style="display:flex;gap:8px;">
+              <div id="wc-result2" style="flex:1;background:var(--output-bg);border:1px solid var(--border);border-radius:3px;padding:7px 10px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent2);min-height:32px;"></div>
+              <button class="btn btn-ghost btn-sm" onclick="safeCopy('wc-result2')">⎘</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>CIDR Prefix → Both Masks</label>
+            <input type="text" id="wc-cidr" placeholder="e.g. /24 or 24" oninput="cidrToBoth()">
+          </div>
+          <div class="field">
+            <label>Result — Subnet / Wildcard</label>
+            <div style="display:flex;gap:8px;">
+              <div id="wc-result3" style="flex:1;background:var(--output-bg);border:1px solid var(--border);border-radius:3px;padding:7px 10px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--accent2);min-height:32px;"></div>
+              <button class="btn btn-ghost btn-sm" onclick="safeCopy('wc-result3')">⎘</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title green">Common Reference Table</div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <thead><tr style="border-bottom:1px solid var(--border2);">
+              <th style="text-align:left;padding:6px 10px;color:var(--text-dim);font-family:'Syne',sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;">CIDR</th>
+              <th style="text-align:left;padding:6px 10px;color:var(--text-dim);font-family:'Syne',sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;">Subnet Mask</th>
+              <th style="text-align:left;padding:6px 10px;color:var(--text-dim);font-family:'Syne',sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;">Wildcard Mask</th>
+              <th style="text-align:left;padding:6px 10px;color:var(--text-dim);font-family:'Syne',sans-serif;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;">Hosts</th>
+            </tr></thead>
+            <tbody id="wc-ref-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- IP RANGE EXPANDER -->
+    <div id="page-ip_range" class="page">
+      <div class="page-header">
+        <div class="page-header-left">
+          <div class="page-title">IP Range Expander</div>
+          <div class="page-desc">Enter an IP range and get every address listed — ready for bulk Checkpoint object creation.</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Input</div>
+        <div class="form-grid form-grid-2">
+          <div class="field"><label>Start IP</label><input type="text" id="ir-start" placeholder="10.0.0.1" oninput="expandRange()"></div>
+          <div class="field"><label>End IP</label><input type="text" id="ir-end" placeholder="10.0.0.50" oninput="expandRange()"></div>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <label style="text-transform:none;letter-spacing:0;font-size:12px;color:var(--text);display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="ir-exclude-net" onchange="expandRange()"> Exclude network address</label>
+          <label style="text-transform:none;letter-spacing:0;font-size:12px;color:var(--text);display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="ir-exclude-bcast" onchange="expandRange()"> Exclude broadcast address</label>
+        </div>
+      </div>
+      <div class="card" id="ir-results" style="display:none;">
+        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+          <span>Expanded IPs <span class="card-count" id="ir-count">0</span></span>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-success btn-sm" onclick="copyIpRange()">⎘ Copy All</button>
+            <button class="btn btn-primary btn-sm" onclick="downloadIpRange()">↓ Download</button>
+          </div>
+        </div>
+        <div id="ir-summary" style="font-size:11px;color:var(--text-dim);margin-bottom:10px;"></div>
+        <div id="ir-output" style="background:var(--output-bg);border:1px solid var(--border);border-radius:3px;padding:12px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--output-text);max-height:320px;overflow-y:auto;white-space:pre;line-height:1.8;"></div>
+      </div>
+    </div>
+
+    <!-- NAT RULE BUILDER -->
+    <div id="page-nat_builder" class="page">
+      <div class="page-header">
+        <div class="page-header-left">
+          <div class="page-title">NAT Rule Builder</div>
+          <div class="page-desc">Generate <code>add nat-rule</code> commands for Checkpoint hide NAT and static NAT policies.</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">NAT Rule Settings</div>
+        <div class="form-grid form-grid-2">
+          <div class="field"><label>Package Name</label><input type="text" id="nat-pkg" placeholder="Standard" value="Standard"></div>
+          <div class="field"><label>NAT Type</label><select id="nat-type" onchange="toggleNatFields()">
+            <option value="hide">Hide NAT (Many-to-One)</option>
+            <option value="static">Static NAT (One-to-One)</option>
+          </select></div>
+          <div class="field"><label>Position</label><select id="nat-pos">
+            <option value="top">Top</option>
+            <option value="bottom">Bottom</option>
+          </select></div>
+          <div class="field"><label>Comments</label><input type="text" id="nat-comments" placeholder="Auto-generated NAT rule"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Original (Before NAT)</div>
+        <div class="form-grid form-grid-2">
+          <div class="field"><label>Source Object</label><input type="text" id="nat-orig-src" placeholder="Net_10.0.0.0_24"></div>
+          <div class="field"><label>Destination Object</label><input type="text" id="nat-orig-dst" placeholder="Any" value="Any"></div>
+          <div class="field"><label>Service</label><input type="text" id="nat-orig-svc" placeholder="Any" value="Any"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Translated (After NAT)</div>
+        <div class="form-grid form-grid-2">
+          <div class="field"><label>Translated Source</label><input type="text" id="nat-trans-src" placeholder="GW-External-IP or object name"></div>
+          <div class="field" id="nat-trans-dst-field"><label>Translated Destination</label><input type="text" id="nat-trans-dst" placeholder="Original (leave blank = unchanged)" ></div>
+          <div class="field"><label>Translated Service</label><input type="text" id="nat-trans-svc" placeholder="Original (leave blank = unchanged)"></div>
+          <div class="field" id="nat-method-field"><label>NAT Method</label><select id="nat-method">
+            <option value="hide">Hide</option>
+            <option value="static">Static</option>
+          </select></div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-success" onclick="generateNATRule()">▶ Generate Command</button>
+        <button class="btn btn-ghost" onclick="copyOutput('nat-output')">⎘ Copy</button>
+      </div>
+      <div class="output-container">
+        <div class="output-header">
+          <div class="output-header-left"><div class="output-dots"><div class="output-dot"></div><div class="output-dot"></div><div class="output-dot"></div></div><span class="output-title">Generated NAT Rule</span></div>
+          <span class="output-line-count" id="nat-linecount"></span>
+        </div>
+        <div class="output-body" id="nat-output"></div>
+      </div>
+    </div>
+
+    <!-- CISCO ACL BUILDER -->
+    <div id="page-cisco_acl" class="page">
+      <div class="page-header">
+        <div class="page-header-left">
+          <div class="page-title">Cisco ACL Builder</div>
+          <div class="page-desc">Build standard and extended named ACLs with permit/deny rules and wildcard masks.</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="clearACL()">✕ Clear All</button>
+      </div>
+      <div class="card">
+        <div class="card-title">ACL Settings</div>
+        <div class="form-grid form-grid-3">
+          <div class="field"><label>ACL Name</label><input type="text" id="acl-name" placeholder="INBOUND_FILTER"></div>
+          <div class="field"><label>ACL Type</label><select id="acl-type">
+            <option value="extended">Extended (recommended)</option>
+            <option value="standard">Standard</option>
+          </select></div>
+          <div class="field"><label>Direction Note</label><input type="text" id="acl-dir" placeholder="e.g. Applied inbound on Gi0/1"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title cisco">ACL Rules <span class="card-count" id="acl-rule-count">0</span></div>
+        <div id="acl-entries"></div>
+        <div class="btn-row">
+          <button class="btn btn-warn btn-sm" onclick="addACLEntry('permit')">+ Add Permit</button>
+          <button class="btn btn-danger btn-sm" onclick="addACLEntry('deny')">+ Add Deny</button>
+          <button class="btn btn-ghost btn-sm" onclick="addACLEntry('remark')">+ Add Remark</button>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-success" onclick="generateACL()">▶ Generate ACL</button>
+        <button class="btn btn-ghost" onclick="copyOutput('acl-output')">⎘ Copy</button>
+      </div>
+      <div class="output-container">
+        <div class="output-header">
+          <div class="output-header-left"><div class="output-dots"><div class="output-dot"></div><div class="output-dot"></div><div class="output-dot"></div></div><span class="output-title">Generated ACL</span></div>
+          <span class="output-line-count" id="acl-linecount"></span>
+        </div>
+        <div class="output-body" id="acl-output"></div>
+      </div>
+    </div>
+
+    <!-- CISCO HSRP / VRRP -->
+    <div id="page-cisco_hsrp" class="page">
+      <div class="page-header">
+        <div class="page-header-left">
+          <div class="page-title">HSRP / VRRP Config</div>
+          <div class="page-desc">Generate first-hop redundancy configs for Cisco IOS active/standby gateway pairs.</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Protocol & Interface</div>
+        <div class="form-grid form-grid-3">
+          <div class="field"><label>Protocol</label><select id="fhrp-proto">
+            <option value="hsrp">HSRP (Hot Standby Router Protocol)</option>
+            <option value="vrrp">VRRP (Virtual Router Redundancy)</option>
+          </select></div>
+          <div class="field"><label>Interface</label><input type="text" id="fhrp-iface" placeholder="GigabitEthernet0/1"></div>
+          <div class="field"><label>Group Number</label><input type="text" id="fhrp-group" placeholder="1"></div>
+          <div class="field"><label>Virtual IP (VIP)</label><input type="text" id="fhrp-vip" placeholder="10.0.0.1"></div>
+          <div class="field"><label>Version</label><select id="fhrp-ver">
+            <option value="2">Version 2 (recommended)</option>
+            <option value="1">Version 1</option>
+          </select></div>
+          <div class="field"><label>Authentication Key (optional)</label><input type="text" id="fhrp-auth" placeholder="SecretKey123"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Active Router</div>
+        <div class="form-grid form-grid-3">
+          <div class="field"><label>Interface IP</label><input type="text" id="fhrp-active-ip" placeholder="10.0.0.2"></div>
+          <div class="field"><label>Subnet Mask</label><input type="text" id="fhrp-active-mask" placeholder="255.255.255.0"></div>
+          <div class="field"><label>Priority</label><input type="text" id="fhrp-active-pri" placeholder="110"></div>
+          <div class="field"><label>Preempt</label><select id="fhrp-active-preempt"><option value="yes">Yes</option><option value="no">No</option></select></div>
+          <div class="field"><label>Preempt Delay (sec)</label><input type="text" id="fhrp-active-delay" placeholder="10"></div>
+          <div class="field"><label>Hostname</label><input type="text" id="fhrp-active-host" placeholder="RTR-ACTIVE"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Standby Router</div>
+        <div class="form-grid form-grid-3">
+          <div class="field"><label>Interface IP</label><input type="text" id="fhrp-standby-ip" placeholder="10.0.0.3"></div>
+          <div class="field"><label>Subnet Mask</label><input type="text" id="fhrp-standby-mask" placeholder="255.255.255.0"></div>
+          <div class="field"><label>Priority</label><input type="text" id="fhrp-standby-pri" placeholder="100"></div>
+          <div class="field"><label>Preempt</label><select id="fhrp-standby-preempt"><option value="no">No</option><option value="yes">Yes</option></select></div>
+          <div class="field"><label>Preempt Delay (sec)</label><input type="text" id="fhrp-standby-delay" placeholder="10"></div>
+          <div class="field"><label>Hostname</label><input type="text" id="fhrp-standby-host" placeholder="RTR-STANDBY"></div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-success" onclick="generateFHRP()">▶ Generate Config</button>
+        <button class="btn btn-ghost" onclick="copyOutput('fhrp-output')">⎘ Copy</button>
+      </div>
+      <div class="output-container">
+        <div class="output-header">
+          <div class="output-header-left"><div class="output-dots"><div class="output-dot"></div><div class="output-dot"></div><div class="output-dot"></div></div><span class="output-title cisco">Generated HSRP / VRRP Config</span></div>
+          <span class="output-line-count" id="fhrp-linecount"></span>
+        </div>
+        <div class="output-body" id="fhrp-output"></div>
+      </div>
+    </div>
+
+    <!-- SIC RESET -->
+    <div id="page-sic_reset" class="page">
+      <div class="page-header">
+        <div class="page-header-left">
+          <div class="page-title">Checkpoint SIC Reset</div>
+          <div class="page-desc">Generate SIC reset and re-initialise commands for gateways and management servers.</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Gateway / Module Details</div>
+        <div class="form-grid form-grid-2">
+          <div class="field"><label>Gateway Name / Object</label><input type="text" id="sic-gw-name" placeholder="GW-SITE-01"></div>
+          <div class="field"><label>Gateway IP</label><input type="text" id="sic-gw-ip" placeholder="10.0.0.254"></div>
+          <div class="field"><label>New SIC Key</label><input type="text" id="sic-key" placeholder="Enter activation key (min 4 chars)"></div>
+          <div class="field"><label>Module Type</label><select id="sic-type">
+            <option value="gateway">Gateway / Cluster Member</option>
+            <option value="mgmt">Management Server</option>
+            <option value="mds">MDS / Domain Server</option>
+          </select></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Operations</div>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:4px;">
+          <label style="text-transform:none;letter-spacing:0;font-size:12px;color:var(--text);display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="sic-op-reset" checked> Reset SIC on Gateway (Expert CLI)</label>
+          <label style="text-transform:none;letter-spacing:0;font-size:12px;color:var(--text);display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="sic-op-mgmt" checked> Re-init from SmartConsole (mgmt_cli)</label>
+          <label style="text-transform:none;letter-spacing:0;font-size:12px;color:var(--text);display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="sic-op-verify"> Verify SIC status after</label>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-success" onclick="generateSICReset()">▶ Generate Commands</button>
+        <button class="btn btn-ghost" onclick="copyOutput('sic-output')">⎘ Copy</button>
+      </div>
+      <div class="output-container">
+        <div class="output-header">
+          <div class="output-header-left"><div class="output-dots"><div class="output-dot"></div><div class="output-dot"></div><div class="output-dot"></div></div><span class="output-title">SIC Reset Commands</span></div>
+          <span class="output-line-count" id="sic-linecount"></span>
+        </div>
+        <div class="output-body" id="sic-output"></div>
+      </div>
+    </div>
+
+    <!-- CHANGE REQUEST TEMPLATE -->
+    <div id="page-change_request" class="page">
+      <div class="page-header">
+        <div class="page-header-left">
+          <div class="page-title">Change Request Template</div>
+          <div class="page-desc">Fill in a structured network change request — export as plain text or copy to clipboard.</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="clearCR()">✕ Clear</button>
+      </div>
+      <div class="card">
+        <div class="card-title">Change Details</div>
+        <div class="form-grid form-grid-2">
+          <div class="field"><label>CR Number / Ticket</label><input type="text" id="cr-num" placeholder="CHG0012345"></div>
+          <div class="field"><label>Change Title</label><input type="text" id="cr-title" placeholder="Firewall rule addition for App X"></div>
+          <div class="field"><label>Requestor</label><input type="text" id="cr-requestor" placeholder="John Smith"></div>
+          <div class="field"><label>Implementor</label><input type="text" id="cr-impl" placeholder="Jitendra Vasani"></div>
+          <div class="field"><label>Planned Start</label><input type="text" id="cr-start" placeholder="2025-06-01 22:00"></div>
+          <div class="field"><label>Planned End</label><input type="text" id="cr-end" placeholder="2025-06-01 23:00"></div>
+          <div class="field"><label>Change Type</label><select id="cr-type">
+            <option>Standard</option><option>Normal</option><option>Emergency</option><option>Pre-Approved</option>
+          </select></div>
+          <div class="field"><label>Risk</label><select id="cr-risk">
+            <option>Low</option><option>Medium</option><option>High</option><option>Critical</option>
+          </select></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Scope & Impact</div>
+        <div class="form-grid">
+          <div class="field full"><label>Affected Devices / Systems</label><input type="text" id="cr-devices" placeholder="GW-SITE-01, SW-CORE-01"></div>
+          <div class="field full"><label>Business Impact</label><textarea id="cr-impact" rows="2" placeholder="Describe impact during change window..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:3px;padding:8px;color:var(--text);font-size:12px;resize:vertical;"></textarea></div>
+          <div class="field full"><label>Change Description</label><textarea id="cr-desc" rows="3" placeholder="Detailed description of what will be done..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:3px;padding:8px;color:var(--text);font-size:12px;resize:vertical;"></textarea></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Implementation Steps</div>
+        <div id="cr-steps-list"></div>
+        <div class="btn-row"><button class="btn btn-primary btn-sm" onclick="addCRStep()">+ Add Step</button></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Rollback Plan</div>
+        <div class="form-grid">
+          <div class="field full"><textarea id="cr-rollback" rows="3" placeholder="Steps to undo the change if something goes wrong..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:3px;padding:8px;color:var(--text);font-size:12px;resize:vertical;"></textarea></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Testing & Validation</div>
+        <div class="form-grid">
+          <div class="field full"><textarea id="cr-test" rows="2" placeholder="How will success be validated after the change..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:3px;padding:8px;color:var(--text);font-size:12px;resize:vertical;"></textarea></div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-success" onclick="generateCR()">▶ Generate Template</button>
+        <button class="btn btn-ghost" onclick="copyOutput('cr-output')">⎘ Copy</button>
+        <button class="btn btn-primary" onclick="downloadCR()">↓ Download .txt</button>
+      </div>
+      <div class="output-container">
+        <div class="output-header">
+          <div class="output-header-left"><div class="output-dots"><div class="output-dot"></div><div class="output-dot"></div><div class="output-dot"></div></div><span class="output-title">Change Request</span></div>
+          <span class="output-line-count" id="cr-linecount"></span>
+        </div>
+        <div class="output-body" id="cr-output"></div>
       </div>
     </div>
 
@@ -1833,6 +2383,1128 @@ document.addEventListener('keydown', e => {
     };
     if (map[pageId]) { e.preventDefault(); map[pageId](); }
   }
+});
+
+// ══════════════════════════════════════════════
+// SUBNET CALCULATOR
+// ══════════════════════════════════════════════
+function ipToInt(ip) {
+  return ip.split('.').reduce((acc, oct) => (acc << 8) + parseInt(oct), 0) >>> 0;
+}
+function intToIp(n) {
+  return [(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255].join('.');
+}
+function prefixToMask(prefix) {
+  return prefix === 0 ? 0 : (0xFFFFFFFF << (32 - prefix)) >>> 0;
+}
+function maskToPrefix(mask) {
+  let n = ipToInt(mask), count = 0;
+  while (n & 0x80000000) { count++; n = (n << 1) >>> 0; }
+  return count;
+}
+function isValidIp(ip) {
+  const parts = ip.split('.');
+  return parts.length === 4 && parts.every(p => !isNaN(p) && +p >= 0 && +p <= 255);
+}
+function renderSubnetResults(ip, prefix) {
+  const maskInt = prefixToMask(prefix);
+  const netInt  = (ipToInt(ip) & maskInt) >>> 0;
+  const bcastInt = (netInt | (~maskInt >>> 0)) >>> 0;
+  const firstHost = prefix < 31 ? netInt + 1 : netInt;
+  const lastHost  = prefix < 31 ? bcastInt - 1 : bcastInt;
+  const usable    = prefix < 31 ? Math.pow(2, 32 - prefix) - 2 : (prefix === 31 ? 2 : 1);
+  const wildcard  = intToIp(~maskInt >>> 0);
+
+  const fields = [
+    ['Network Address',   intToIp(netInt),        'var(--accent)'],
+    ['Subnet Mask',       intToIp(maskInt),        'var(--text)'],
+    ['CIDR Notation',     `/${prefix}`,            'var(--accent)'],
+    ['Wildcard Mask',     wildcard,                'var(--warn)'],
+    ['Broadcast Address', intToIp(bcastInt),       'var(--danger)'],
+    ['First Usable Host', intToIp(firstHost),      'var(--accent2)'],
+    ['Last Usable Host',  intToIp(lastHost),       'var(--accent2)'],
+    ['Usable Hosts',      usable.toLocaleString(), 'var(--accent2)'],
+    ['Total Addresses',   Math.pow(2, 32-prefix).toLocaleString(), 'var(--text)'],
+    ['Host Bits',         (32 - prefix).toString(), 'var(--text)'],
+    ['IP Class',          prefix<=7?'A':prefix<=15?'B':prefix<=23?'C':'D/E/Special', 'var(--text)'],
+    ['Binary Mask',       intToIp(maskInt).split('.').map(o=>(+o).toString(2).padStart(8,'0')).join('.'), 'var(--text-dim)'],
+  ];
+
+  const grid = document.getElementById('sc-grid');
+  grid.innerHTML = fields.map(([label, val, color]) => `
+    <div style="background:var(--output-bg);border:1px solid var(--border);border-radius:4px;padding:10px 12px;">
+      <div style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-dim);font-family:'Syne',sans-serif;font-weight:700;margin-bottom:5px;">${label}</div>
+      <div style="font-size:13px;color:${color};font-family:'JetBrains Mono',monospace;font-weight:500;">${val}</div>
+    </div>`).join('');
+
+  document.getElementById('sc-results').style.display = 'block';
+  document.getElementById('sc-hosts-card').style.display = 'block';
+  document.getElementById('sc-summary').textContent = `${usable.toLocaleString()} usable hosts — range: ${intToIp(firstHost)} → ${intToIp(lastHost)}`;
+
+  // update mask field if calc was from CIDR
+  document.getElementById('sc-mask').value = intToIp(maskInt);
+}
+
+function calcSubnet() {
+  const val = document.getElementById('sc-cidr').value.trim();
+  if (!val) { document.getElementById('sc-results').style.display='none'; document.getElementById('sc-hosts-card').style.display='none'; return; }
+  let ip, prefix;
+  if (val.includes('/')) {
+    [ip, prefix] = val.split('/');
+    prefix = parseInt(prefix);
+  } else {
+    ip = val; prefix = 32;
+  }
+  if (!isValidIp(ip) || isNaN(prefix) || prefix < 0 || prefix > 32) return;
+  renderSubnetResults(ip, prefix);
+}
+
+function calcSubnetFromMask() {
+  const mask = document.getElementById('sc-mask').value.trim();
+  const cidr = document.getElementById('sc-cidr').value.trim();
+  if (!isValidIp(mask)) return;
+  const prefix = maskToPrefix(mask);
+  const ip = cidr.includes('/') ? cidr.split('/')[0] : (isValidIp(cidr) ? cidr : '0.0.0.0');
+  document.getElementById('sc-cidr').value = ip + '/' + prefix;
+  renderSubnetResults(ip, prefix);
+}
+
+function toggleHostList() {
+  const wrap = document.getElementById('sc-hostlist');
+  const btn = event.target;
+  if (wrap.style.display === 'none') {
+    const val = document.getElementById('sc-cidr').value.trim();
+    if (!val.includes('/')) return;
+    const [ip, pfx] = val.split('/');
+    const prefix = parseInt(pfx);
+    if (prefix < 16) { toast('Too many hosts to display (use /16 or smaller range)', 'error'); return; }
+    const mask = prefixToMask(prefix);
+    const net  = (ipToInt(ip) & mask) >>> 0;
+    const bcast = (net | (~mask >>> 0)) >>> 0;
+    let lines = [];
+    for (let i = net+1; i < bcast; i++) lines.push(intToIp(i));
+    document.getElementById('sc-hostlist-body').textContent = lines.join('\n');
+    wrap.style.display = 'block';
+    btn.textContent = 'Hide Hosts';
+  } else {
+    wrap.style.display = 'none';
+    btn.textContent = 'Show All Hosts';
+  }
+}
+
+// ══════════════════════════════════════════════
+// IP / VLAN PLANNER
+// ══════════════════════════════════════════════
+function syncVLANRows() {
+  const count = parseInt(document.getElementById('vp-count').value) || 0;
+  const container = document.getElementById('vp-vlan-rows');
+  const existing = container.querySelectorAll('.vp-row').length;
+  const defHosts = document.getElementById('vp-defhosts').value || '50';
+
+  if (count > existing) {
+    for (let i = existing + 1; i <= count; i++) {
+      container.insertAdjacentHTML('beforeend', `
+        <div class="vp-row entry-block" style="margin-bottom:6px;">
+          <div class="form-grid" style="grid-template-columns:80px 1fr 130px;">
+            <div class="field"><label>VLAN ID</label><input type="text" class="vp-vid" value="${i * 10}" oninput="planVLANs()"></div>
+            <div class="field"><label>Name</label><input type="text" class="vp-vname" value="VLAN_${i * 10}" oninput="planVLANs()"></div>
+            <div class="field"><label>Hosts Needed</label><input type="text" class="vp-hosts" value="${defHosts}" oninput="planVLANs()"></div>
+          </div>
+        </div>`);
+    }
+  } else if (count < existing) {
+    const rows = container.querySelectorAll('.vp-row');
+    for (let i = existing; i > count; i--) rows[i-1].remove();
+  }
+  document.getElementById('vp-vlan-count').textContent = count;
+  planVLANs();
+}
+
+function nextPow2(n) {
+  let p = 1; while (p < n) p <<= 1; return p;
+}
+
+function planVLANs() {
+  const baseStr = document.getElementById('vp-base').value.trim();
+  if (!isValidIp(baseStr)) { document.getElementById('vp-results').style.display='none'; return; }
+
+  const rows = document.querySelectorAll('#vp-vlan-rows .vp-row');
+  if (!rows.length) { document.getElementById('vp-results').style.display='none'; return; }
+
+  let cursor = ipToInt(baseStr);
+  const tbody = document.getElementById('vp-tbody');
+  tbody.innerHTML = '';
+  let totalUsed = 0;
+
+  rows.forEach(row => {
+    const vid   = row.querySelector('.vp-vid').value.trim() || '—';
+    const vname = row.querySelector('.vp-vname').value.trim() || '—';
+    const hosts = parseInt(row.querySelector('.vp-hosts').value) || 2;
+    const needed = hosts + 2; // network + broadcast
+    const size   = nextPow2(needed);
+    const prefix = 32 - Math.log2(size);
+    const maskInt = prefixToMask(prefix);
+
+    // align cursor to block boundary
+    if (cursor % size !== 0) cursor = Math.floor(cursor / size) * size + size;
+
+    const netInt   = cursor;
+    const bcast    = netInt + size - 1;
+    const gateway  = netInt + 1;
+    const lastHost = bcast - 1;
+    const usable   = size - 2;
+    totalUsed += size;
+
+    const tr = document.createElement('tr');
+    tr.style.cssText = 'border-bottom:1px solid var(--border);';
+    tr.innerHTML = `
+      <td style="padding:7px 10px;color:var(--accent);font-weight:600;">${vid}</td>
+      <td style="padding:7px 10px;color:var(--text);">${vname}</td>
+      <td style="padding:7px 10px;color:var(--text-dim);">${hosts}</td>
+      <td style="padding:7px 10px;color:var(--accent2);">${intToIp(netInt)}/${prefix}</td>
+      <td style="padding:7px 10px;color:var(--text-dim);">${intToIp(maskInt)}</td>
+      <td style="padding:7px 10px;color:var(--warn);">${intToIp(gateway)}</td>
+      <td style="padding:7px 10px;color:var(--danger);">${intToIp(bcast)}</td>
+      <td style="padding:7px 10px;color:var(--accent2);">${usable}</td>`;
+    tbody.appendChild(tr);
+    cursor = bcast + 1;
+  });
+
+  // Supernet calc
+  const totalSize = cursor - ipToInt(baseStr);
+  const superPrefix = 32 - Math.ceil(Math.log2(totalSize + 1));
+  document.getElementById('vp-supernet-info').innerHTML =
+    `Supernet: <strong style="color:var(--accent2)">${baseStr}/${Math.max(0,superPrefix)}</strong> — covering ${rows.length} VLANs, ${totalUsed} total addresses`;
+
+  document.getElementById('vp-results').style.display = 'block';
+}
+
+function copyVLANTable() {
+  const rows = document.querySelectorAll('#vp-tbody tr');
+  const header = 'VLAN\tName\tHosts Needed\tSubnet\tMask\tGateway\tBroadcast\tUsable Hosts';
+  const lines = [header];
+  rows.forEach(r => {
+    lines.push([...r.querySelectorAll('td')].map(td => td.textContent.trim()).join('\t'));
+  });
+  navigator.clipboard.writeText(lines.join('\n')).then(() => toast('Table copied!')).catch(() => toast('Copy failed','error'));
+}
+
+function downloadVLANPlan() {
+  const rows = document.querySelectorAll('#vp-tbody tr');
+  const header = 'VLAN,Name,Hosts Needed,Subnet,Mask,Gateway,Broadcast,Usable Hosts\n';
+  const lines = [...rows].map(r => [...r.querySelectorAll('td')].map(td => td.textContent.trim()).join(','));
+  triggerDownload(header + lines.join('\n'), 'vlan_plan.csv');
+}
+
+// ══════════════════════════════════════════════
+// PASSWORD GENERATOR
+// ══════════════════════════════════════════════
+let _generatedPasswords = [];
+
+function generatePassword() {
+  const len     = Math.min(128, Math.max(4, parseInt(document.getElementById('pg-len').value) || 24));
+  const count   = Math.min(20, Math.max(1, parseInt(document.getElementById('pg-count').value) || 5));
+  const noAmbig = document.getElementById('pg-noambig').value === 'yes';
+  const useUpper = document.getElementById('pg-upper').checked;
+  const useLower = document.getElementById('pg-lower').checked;
+  const useNum   = document.getElementById('pg-num').checked;
+  const useSym   = document.getElementById('pg-sym').checked;
+
+  let upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let lower = 'abcdefghijklmnopqrstuvwxyz';
+  let nums  = '0123456789';
+  let syms  = '!@#$%^&*()-_=+[]{}|;:,.<>?';
+
+  if (noAmbig) { upper = upper.replace(/[O]/g,''); lower = lower.replace(/[l]/g,''); nums = nums.replace(/[01]/g,''); }
+
+  let charset = '';
+  if (useUpper) charset += upper;
+  if (useLower) charset += lower;
+  if (useNum)   charset += nums;
+  if (useSym)   charset += syms;
+
+  if (!charset) { toast('Select at least one character set', 'error'); return; }
+
+  _generatedPasswords = [];
+
+  for (let p = 0; p < count; p++) {
+    const arr = new Uint32Array(Math.max(len, 8));
+    crypto.getRandomValues(arr);
+    const required = [];
+    if (useUpper) required.push(upper[arr[0] % upper.length]);
+    if (useLower) required.push(lower[arr[1] % lower.length]);
+    if (useNum)   required.push(nums[arr[2] % nums.length]);
+    if (useSym)   required.push(syms[arr[3] % syms.length]);
+    let pwArr = [];
+    for (let i = 0; i < len; i++) pwArr.push(charset[arr[i] % charset.length]);
+    required.forEach((ch, i) => { pwArr[i] = ch; });
+    for (let i = pwArr.length - 1; i > 0; i--) {
+      const j = arr[i % arr.length] % (i + 1);
+      [pwArr[i], pwArr[j]] = [pwArr[j], pwArr[i]];
+    }
+    _generatedPasswords.push(pwArr.join(''));
+  }
+
+  const list = document.getElementById('pg-list');
+  list.innerHTML = _generatedPasswords.map((pw, i) => {
+    const strength = getStrength(pw);
+    return `<div style="display:flex;align-items:center;gap:8px;background:var(--output-bg);border:1px solid var(--border);border-radius:3px;padding:8px 12px;">
+      <span style="flex:1;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--output-text);word-break:break-all;">${pw}</span>
+      <span style="font-size:9px;padding:2px 7px;border-radius:2px;font-family:'Syne',sans-serif;font-weight:700;letter-spacing:0.08em;background:${strength.bg};color:${strength.color};border:1px solid ${strength.color}44;">${strength.label}</span>
+      <button class="btn btn-ghost btn-sm" onclick="copyPassword(${i})">⎘</button>
+    </div>`;
+  }).join('');
+}
+
+function getStrength(pw) {
+  let score = 0;
+  if (pw.length >= 16) score++;
+  if (pw.length >= 24) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[a-z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  if (score <= 2) return { label:'WEAK',   color:'var(--danger)', bg:'rgba(255,71,87,0.1)' };
+  if (score <= 4) return { label:'MEDIUM', color:'var(--warn)',   bg:'rgba(255,179,71,0.1)' };
+  return              { label:'STRONG', color:'var(--accent2)', bg:'rgba(0,255,136,0.1)' };
+}
+
+function copyPassword(i) {
+  const pw = _generatedPasswords[i];
+  if (pw === undefined) { toast('Nothing to copy', 'error'); return; }
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(pw).then(() => toast('Copied!')).catch(() => fallbackCopy(pw));
+  } else {
+    fallbackCopy(pw);
+  }
+}
+
+function copyAllPasswords() {
+  if (!_generatedPasswords.length) { toast('Generate passwords first','error'); return; }
+  const text = _generatedPasswords.join('\n');
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(() => toast('All passwords copied!')).catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+// ══════════════════════════════════════════════
+// SAFE COPY (clipboard API + textarea fallback)
+// ══════════════════════════════════════════════
+function safeCopy(elId) {
+  const text = document.getElementById(elId).textContent.trim();
+  if (!text) { toast('Nothing to copy', 'error'); return; }
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(() => toast('Copied!')).catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  try {
+    document.execCommand('copy');
+    toast('Copied!');
+  } catch(e) {
+    toast('Copy failed — please copy manually', 'error');
+  }
+  document.body.removeChild(ta);
+}
+
+// ══════════════════════════════════════════════
+// OPENSSL PASSWORD HASH (MD5-crypt / SHA-crypt)
+// ══════════════════════════════════════════════
+const CRYPT_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789./';
+
+function generateSalt() {
+  const algo = document.getElementById('ph-algo').value;
+  const maxLen = algo === 'md5crypt' ? 8 : 16;
+  const arr = new Uint8Array(maxLen);
+  crypto.getRandomValues(arr);
+  const salt = [...arr].map(b => CRYPT_CHARS[b % CRYPT_CHARS.length]).join('');
+  document.getElementById('ph-salt').value = salt;
+  updateCryptHash();
+  toast('Salt generated!');
+}
+
+function clearSalt() {
+  document.getElementById('ph-salt').value = '';
+  updateCryptHash();
+}
+
+async function updateCryptHash() {
+  const plain = document.getElementById('ph-plain').value;
+  const algo  = document.getElementById('ph-algo').value;
+  const resultEl = document.getElementById('ph-salt-result');
+
+  if (!plain) { resultEl.style.display = 'none'; return; }
+
+  // Use provided salt or auto-generate one
+  let salt = document.getElementById('ph-salt').value.trim();
+  const maxLen = algo === 'md5crypt' ? 8 : 16;
+  if (!salt) {
+    const arr = new Uint8Array(maxLen);
+    crypto.getRandomValues(arr);
+    salt = [...arr].map(b => CRYPT_CHARS[b % CRYPT_CHARS.length]).join('');
+    document.getElementById('ph-salt').value = salt;
+  }
+  // Enforce max salt length
+  salt = salt.slice(0, maxLen);
+
+  let hash, flag, cmd;
+  if (algo === 'md5crypt') {
+    hash = await md5crypt(plain, salt);
+    flag = '-1'; cmd = `openssl passwd -1 -salt ${salt}`;
+  } else if (algo === 'sha256crypt') {
+    hash = await shacrypt(plain, salt, 'SHA-256', 5000, 'SHA-256');
+    flag = '-5'; cmd = `openssl passwd -5 -salt ${salt}`;
+  } else {
+    hash = await shacrypt(plain, salt, 'SHA-512', 5000, 'SHA-512');
+    flag = '-6'; cmd = `openssl passwd -6 -salt ${salt}`;
+  }
+
+  document.getElementById('ph-salt-display').textContent  = salt;
+  document.getElementById('ph-openssl-cmd').textContent   = cmd;
+  document.getElementById('ph-salted-string').textContent = hash;
+  resultEl.style.display = 'block';
+}
+
+// ── MD5-crypt (RFC 2014 / OpenSSL passwd -1) ──
+async function md5crypt(password, salt) {
+  const enc = s => new TextEncoder().encode(s);
+
+  // MD5 working directly on Uint8Array
+  const md5bytes = (data) => {
+    // Pad message
+    const len = data.length;
+    const bitLen = len * 8;
+    const padLen = ((55 - len) % 64 + 64) % 64 + 1;
+    const msg = new Uint8Array(len + padLen + 8);
+    msg.set(data);
+    msg[len] = 0x80;
+    // Append bit length as 64-bit LE
+    let bl = bitLen;
+    for (let i = 0; i < 8; i++) { msg[len + padLen + i] = bl & 0xff; bl = Math.floor(bl / 256); }
+
+    // Helper
+    const add = (a,b) => (a+b) >>> 0;
+    const rol = (x,n) => ((x<<n)|(x>>>(32-n))) >>> 0;
+    const F=(b,c,d)=>((b&c)|(~b&d))>>>0, G=(b,c,d)=>((b&d)|(c&~d))>>>0;
+    const H=(b,c,d)=>(b^c^d)>>>0,        I=(b,c,d)=>(c^(b|~d))>>>0;
+
+    const T = new Uint32Array(64);
+    for (let i=0;i<64;i++) T[i] = (Math.abs(Math.sin(i+1)) * 0x100000000) >>> 0;
+
+    const S = [7,12,17,22,7,12,17,22,7,12,17,22,7,12,17,22,
+               5, 9,14,20,5, 9,14,20,5, 9,14,20,5, 9,14,20,
+               4,11,16,23,4,11,16,23,4,11,16,23,4,11,16,23,
+               6,10,15,21,6,10,15,21,6,10,15,21,6,10,15,21];
+
+    let a0=0x67452301, b0=0xefcdab89, c0=0x98badcfe, d0=0x10325476;
+
+    for (let off=0; off<msg.length; off+=64) {
+      const M = new Uint32Array(16);
+      for (let j=0;j<16;j++) M[j]=msg[off+j*4]|(msg[off+j*4+1]<<8)|(msg[off+j*4+2]<<16)|(msg[off+j*4+3]<<24);
+      let A=a0,B=b0,C=c0,D=d0;
+      for (let i=0;i<64;i++) {
+        let fn, g;
+        if      (i<16){fn=F(B,C,D);g=i;}
+        else if (i<32){fn=G(B,C,D);g=(5*i+1)%16;}
+        else if (i<48){fn=H(B,C,D);g=(3*i+5)%16;}
+        else          {fn=I(B,C,D);g=(7*i)%16;}
+        const temp=add(add(add(A,fn),M[g]),T[i]);
+        A=D; D=C; C=B; B=add(B,rol(temp,S[i]));
+      }
+      a0=add(a0,A); b0=add(b0,B); c0=add(c0,C); d0=add(d0,D);
+    }
+
+    const out = new Uint8Array(16);
+    [a0,b0,c0,d0].forEach((v,i)=>{out[i*4]=v&0xff;out[i*4+1]=(v>>8)&0xff;out[i*4+2]=(v>>16)&0xff;out[i*4+3]=(v>>24)&0xff;});
+    return out;
+  };
+
+  const pw    = enc(password);
+  const sl    = enc(salt);
+  const magic = enc('$1$');
+  const cat   = (...a) => { const t=new Uint8Array(a.reduce((s,x)=>s+x.length,0)); let o=0; a.forEach(x=>{t.set(x,o);o+=x.length;}); return t; };
+
+  // Digest B = MD5(pw + salt + pw)
+  const B = md5bytes(cat(pw, sl, pw));
+
+  // Build input for Digest A: pw + magic + salt + B(repeated, pw.length bytes) + bits of pw.length
+  let aArr = [...pw, ...magic, ...sl];
+  let plen = pw.length;
+  while (plen > 0) { aArr.push(...B.slice(0, Math.min(plen, 16))); plen -= 16; }
+  plen = pw.length;
+  while (plen > 0) { aArr.push(plen & 1 ? 0 : pw[0]); plen >>= 1; }   // 0x00 for odd bits — this is the key fix
+
+  // Digest A (initial C)
+  let C = md5bytes(new Uint8Array(aArr));
+
+  // 1000 rounds
+  for (let i = 0; i < 1000; i++) {
+    let d = [];
+    if (i & 1) d.push(...pw); else d.push(...C);
+    if (i % 3) d.push(...sl);
+    if (i % 7) d.push(...pw);
+    if (i & 1) d.push(...C); else d.push(...pw);
+    C = md5bytes(new Uint8Array(d));
+  }
+
+  // crypt-base64 encode
+  const to64 = (v, n) => { let r=''; while(n-->0){r+=CRYPT_CHARS[v&0x3f];v>>>=6;} return r; };
+  const hash =
+    to64((C[0]<<16)|(C[6]<<8)|C[12], 4) +
+    to64((C[1]<<16)|(C[7]<<8)|C[13], 4) +
+    to64((C[2]<<16)|(C[8]<<8)|C[14], 4) +
+    to64((C[3]<<16)|(C[9]<<8)|C[15], 4) +
+    to64((C[4]<<16)|(C[10]<<8)|C[5],  4) +
+    to64(C[11], 2);
+
+  return `$1$${salt}$${hash}`;
+}
+
+// ── SHA-crypt (SHA-256 = $5$, SHA-512 = $6$) ──
+async function shacrypt(password, salt, algoName, rounds, variant) {
+  const enc = s => new TextEncoder().encode(s);
+  const digest = async data => new Uint8Array(await crypto.subtle.digest(algoName, data));
+  const concat = (...arrays) => { const len = arrays.reduce((s,a)=>s+a.length,0); const r=new Uint8Array(len); let o=0; arrays.forEach(a=>{r.set(a,o);o+=a.length;}); return r; };
+
+  const id   = variant === 'SHA-256' ? '5' : '6';
+  const blen = variant === 'SHA-256' ? 32 : 64;
+
+  const pw = enc(password);
+  const sl = enc(salt);
+
+  // Digest B: password + salt + password
+  const B = await digest(concat(pw, sl, pw));
+
+  // Digest A: password + salt + B (repeated, pw.length bytes)
+  let aInput = [...pw, ...sl];
+  let plen = pw.length;
+  while (plen > 0) { aInput.push(...B.slice(0, Math.min(plen, blen))); plen -= blen; }
+  let pp = pw.length;
+  while (pp > 0) { aInput.push(pp & 1 ? 0 : pw[0]); pp >>= 1; }
+  const A = await digest(new Uint8Array(aInput));
+
+  // P string: repeat password to pw.length bytes
+  let pStr = new Uint8Array(0);
+  plen = pw.length;
+  const fullPW = new Uint8Array(blen); fullPW.set(A.slice(0, blen));
+  while (plen > 0) { pStr = concat(pStr, pw.slice(0, Math.min(plen, pw.length))); plen -= pw.length; }
+  pStr = pStr.slice(0, pw.length);
+
+  // S string: repeat salt to salt.length bytes
+  let sStr = new Uint8Array(0);
+  let slen = sl.length;
+  while (slen > 0) { sStr = concat(sStr, sl.slice(0, Math.min(slen, sl.length))); slen -= sl.length; }
+  sStr = sStr.slice(0, sl.length);
+
+  // rounds
+  let C = A;
+  for (let i = 0; i < rounds; i++) {
+    let d = new Uint8Array(0);
+    if (i & 1) d = concat(d, pStr); else d = concat(d, C);
+    if (i % 3) d = concat(d, sStr);
+    if (i % 7) d = concat(d, pStr);
+    if (i & 1) d = concat(d, C); else d = concat(d, pStr);
+    C = await digest(d);
+  }
+
+  // Base64 encode with crypt ordering
+  const to64 = (v, n) => { let r=''; while(n-->0){r+=CRYPT_CHARS[v&0x3f];v>>=6;} return r; };
+
+  let hash = '';
+  if (variant === 'SHA-256') {
+    hash =
+      to64((C[0]<<16)|(C[10]<<8)|C[20],4)+to64((C[21]<<16)|(C[1]<<8)|C[11],4)+
+      to64((C[12]<<16)|(C[22]<<8)|C[2],4)+to64((C[3]<<16)|(C[13]<<8)|C[23],4)+
+      to64((C[24]<<16)|(C[4]<<8)|C[14],4)+to64((C[15]<<16)|(C[25]<<8)|C[5],4)+
+      to64((C[6]<<16)|(C[16]<<8)|C[26],4)+to64((C[27]<<16)|(C[7]<<8)|C[17],4)+
+      to64((C[18]<<16)|(C[28]<<8)|C[8],4)+to64((C[9]<<16)|(C[19]<<8)|C[29],4)+
+      to64((C[31]<<8)|C[30],3);
+  } else {
+    hash =
+      to64((C[0]<<16)|(C[21]<<8)|C[42],4)+to64((C[22]<<16)|(C[43]<<8)|C[1],4)+
+      to64((C[44]<<16)|(C[2]<<8)|C[23],4)+to64((C[3]<<16)|(C[24]<<8)|C[45],4)+
+      to64((C[25]<<16)|(C[46]<<8)|C[4],4)+to64((C[47]<<16)|(C[5]<<8)|C[26],4)+
+      to64((C[6]<<16)|(C[27]<<8)|C[48],4)+to64((C[28]<<16)|(C[49]<<8)|C[7],4)+
+      to64((C[50]<<16)|(C[8]<<8)|C[29],4)+to64((C[9]<<16)|(C[30]<<8)|C[51],4)+
+      to64((C[31]<<16)|(C[52]<<8)|C[10],4)+to64((C[53]<<16)|(C[11]<<8)|C[32],4)+
+      to64((C[12]<<16)|(C[33]<<8)|C[54],4)+to64((C[34]<<16)|(C[55]<<8)|C[13],4)+
+      to64((C[56]<<16)|(C[14]<<8)|C[35],4)+to64((C[15]<<16)|(C[36]<<8)|C[57],4)+
+      to64((C[37]<<16)|(C[58]<<8)|C[16],4)+to64((C[59]<<16)|(C[17]<<8)|C[38],4)+
+      to64((C[18]<<16)|(C[39]<<8)|C[60],4)+to64((C[40]<<16)|(C[61]<<8)|C[19],4)+
+      to64((C[62]<<16)|(C[20]<<8)|C[41],4)+to64(C[63],2);
+  }
+
+  return `$${id}$${salt}$${hash}`;
+}
+
+function copyEl(id) {
+  const text = document.getElementById(id).textContent.trim();
+  if (!text) { toast('Nothing to copy', 'error'); return; }
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(() => toast('Copied!')).catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+// Auto-init password generator on page load
+document.addEventListener('DOMContentLoaded', () => {
+  generatePassword();
+  buildWildcardRefTable();
+});
+
+// ══════════════════════════════════════════════
+// DARK / LIGHT MODE TOGGLE
+// ══════════════════════════════════════════════
+let _isDark = true;
+function toggleTheme() {
+  _isDark = !_isDark;
+  const root = document.documentElement;
+  if (_isDark) {
+    root.style.setProperty('--bg',           '#080c0f');
+    root.style.setProperty('--surface',      '#0d1318');
+    root.style.setProperty('--surface2',     '#111820');
+    root.style.setProperty('--border',       '#1e2d3a');
+    root.style.setProperty('--border2',      '#243344');
+    root.style.setProperty('--text',         '#c8dce8');
+    root.style.setProperty('--text-dim',     '#5a7a8f');
+    root.style.setProperty('--text-bright',  '#e8f4ff');
+    root.style.setProperty('--output-bg',    '#060a0d');
+    root.style.setProperty('--output-text',  '#00ff88');
+    document.getElementById('theme-tile-label').textContent = '🌙 Switch to Light Mode';
+    document.getElementById('nav-theme').querySelector('span+*') && (document.getElementById('nav-theme').lastChild.textContent = '🌙 Dark Mode');
+  } else {
+    root.style.setProperty('--bg',           '#f0f4f8');
+    root.style.setProperty('--surface',      '#ffffff');
+    root.style.setProperty('--surface2',     '#e8eef4');
+    root.style.setProperty('--border',       '#c8d8e8');
+    root.style.setProperty('--border2',      '#a8c0d8');
+    root.style.setProperty('--text',         '#1a2a38');
+    root.style.setProperty('--text-dim',     '#5a7a8f');
+    root.style.setProperty('--text-bright',  '#0a1a28');
+    root.style.setProperty('--output-bg',    '#e8f0f8');
+    root.style.setProperty('--output-text',  '#007744');
+    document.getElementById('theme-tile-label').textContent = '☀️ Switch to Dark Mode';
+  }
+}
+// Make theme toggle nav item call toggleTheme instead of navigate
+document.getElementById('nav-theme').onclick = (e) => { e.stopPropagation(); toggleTheme(); };
+
+// ══════════════════════════════════════════════
+// WILDCARD CONVERTER
+// ══════════════════════════════════════════════
+function subnetToWildcard() {
+  const val = document.getElementById('wc-subnet').value.trim();
+  const el  = document.getElementById('wc-result1');
+  if (!isValidIp(val)) { el.textContent = ''; return; }
+  const maskInt = ipToInt(val);
+  el.textContent = intToIp((~maskInt) >>> 0);
+}
+
+function wildcardToSubnet() {
+  const val = document.getElementById('wc-wild').value.trim();
+  const el  = document.getElementById('wc-result2');
+  if (!isValidIp(val)) { el.textContent = ''; return; }
+  const wildInt = ipToInt(val);
+  el.textContent = intToIp((~wildInt) >>> 0);
+}
+
+function cidrToBoth() {
+  let val = document.getElementById('wc-cidr').value.trim().replace('/','');
+  const el = document.getElementById('wc-result3');
+  const prefix = parseInt(val);
+  if (isNaN(prefix) || prefix < 0 || prefix > 32) { el.textContent = ''; return; }
+  const maskInt = prefixToMask(prefix);
+  const wildInt = (~maskInt) >>> 0;
+  el.textContent = `${intToIp(maskInt)}  /  ${intToIp(wildInt)}`;
+}
+
+function buildWildcardRefTable() {
+  const tbody = document.getElementById('wc-ref-table');
+  if (!tbody) return;
+  const prefixes = [8,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,32];
+  tbody.innerHTML = prefixes.map((p,i) => {
+    const mask = prefixToMask(p);
+    const wild = (~mask)>>>0;
+    const hosts = p < 31 ? Math.pow(2,32-p)-2 : (p===31?2:1);
+    return `<tr style="border-bottom:1px solid var(--border);background:${i%2===0?'transparent':'rgba(0,0,0,0.1)'}">
+      <td style="padding:5px 10px;color:var(--accent);font-weight:600;">/${p}</td>
+      <td style="padding:5px 10px;color:var(--text);font-family:'JetBrains Mono',monospace;">${intToIp(mask)}</td>
+      <td style="padding:5px 10px;color:var(--warn);font-family:'JetBrains Mono',monospace;">${intToIp(wild)}</td>
+      <td style="padding:5px 10px;color:var(--text-dim);">${hosts.toLocaleString()}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════
+// IP RANGE EXPANDER
+// ══════════════════════════════════════════════
+let _expandedIPs = [];
+
+function expandRange() {
+  const startStr = document.getElementById('ir-start').value.trim();
+  const endStr   = document.getElementById('ir-end').value.trim();
+  const exNet    = document.getElementById('ir-exclude-net').checked;
+  const exBcast  = document.getElementById('ir-exclude-bcast').checked;
+  const resultsEl = document.getElementById('ir-results');
+
+  if (!isValidIp(startStr) || !isValidIp(endStr)) { resultsEl.style.display='none'; return; }
+
+  const startInt = ipToInt(startStr);
+  const endInt   = ipToInt(endStr);
+
+  if (endInt < startInt) { resultsEl.style.display='none'; toast('End IP must be greater than Start IP','error'); return; }
+
+  const total = endInt - startInt + 1;
+  if (total > 65536) { toast('Range too large (max 65536 IPs)', 'error'); resultsEl.style.display='none'; return; }
+
+  _expandedIPs = [];
+  for (let i = startInt; i <= endInt; i++) {
+    if (exNet   && i === startInt) continue;
+    if (exBcast && i === endInt)   continue;
+    _expandedIPs.push(intToIp(i));
+  }
+
+  document.getElementById('ir-count').textContent   = _expandedIPs.length;
+  document.getElementById('ir-summary').textContent = `Range: ${startStr} → ${endStr}  ·  ${total} total addresses  ·  ${_expandedIPs.length} listed`;
+  document.getElementById('ir-output').textContent  = _expandedIPs.join('\n');
+  resultsEl.style.display = 'block';
+}
+
+function copyIpRange() {
+  if (!_expandedIPs.length) { toast('No IPs to copy','error'); return; }
+  const text = _expandedIPs.join('\n');
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(()=>toast(`${_expandedIPs.length} IPs copied!`)).catch(()=>fallbackCopy(text));
+  } else { fallbackCopy(text); }
+}
+
+function downloadIpRange() {
+  if (!_expandedIPs.length) { toast('No IPs to download','error'); return; }
+  triggerDownload(_expandedIPs.join('\n'), 'ip_range.txt');
+}
+
+// ══════════════════════════════════════════════
+// NAT RULE BUILDER
+// ══════════════════════════════════════════════
+function toggleNatFields() {
+  const type = document.getElementById('nat-type').value;
+  document.getElementById('nat-method-field').style.display   = type === 'hide' ? 'block' : 'none';
+}
+
+function generateNATRule() {
+  const g   = id => document.getElementById(id).value.trim();
+  const pkg  = g('nat-pkg')       || 'Standard';
+  const pos  = g('nat-pos');
+  const type = g('nat-type');
+  const oSrc = g('nat-orig-src')  || 'Any';
+  const oDst = g('nat-orig-dst')  || 'Any';
+  const oSvc = g('nat-orig-svc')  || 'Any';
+  const tSrc = g('nat-trans-src') || 'Original';
+  const tDst = g('nat-trans-dst') || 'Original';
+  const tSvc = g('nat-trans-svc') || 'Original';
+  const method = type === 'hide' ? g('nat-method') : 'static';
+  const comments = g('nat-comments') || 'NAT rule';
+
+  let cmd = `mgmt_cli add nat-rule package "${pkg}"`;
+  cmd += ` position ${pos}`;
+  cmd += `\\\n  original-source "${oSrc}"`;
+  cmd += `\\\n  original-destination "${oDst}"`;
+  cmd += `\\\n  original-service "${oSvc}"`;
+  cmd += `\\\n  translated-source "${tSrc}"`;
+  cmd += `\\\n  translated-destination "${tDst}"`;
+  cmd += `\\\n  translated-service "${tSvc}"`;
+  cmd += `\\\n  method "${method}"`;
+  cmd += `\\\n  comments "${comments}"`;
+  cmd += `\\\n  --format json`;
+
+  setOutput('nat-output', cmd, 'nat-linecount');
+}
+
+// ══════════════════════════════════════════════
+// CISCO ACL BUILDER
+// ══════════════════════════════════════════════
+let _aclEntries = [];
+
+function addACLEntry(action) {
+  const id = Date.now();
+  _aclEntries.push({ id, action });
+  renderACLEntries();
+}
+
+function removeACLEntry(id) {
+  _aclEntries = _aclEntries.filter(e => e.id !== id);
+  renderACLEntries();
+}
+
+function renderACLEntries() {
+  const type = document.getElementById('acl-type').value;
+  const isExt = type === 'extended';
+  const container = document.getElementById('acl-entries');
+  document.getElementById('acl-rule-count').textContent = _aclEntries.length;
+
+  container.innerHTML = _aclEntries.map((e, i) => {
+    if (e.action === 'remark') {
+      return `<div class="entry-block" style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <span style="font-size:10px;padding:2px 8px;border-radius:2px;background:rgba(0,212,255,0.1);color:var(--accent);border:1px solid rgba(0,212,255,0.3);font-family:'Syne',sans-serif;font-weight:700;min-width:58px;text-align:center;">REMARK</span>
+        <input type="text" class="acl-remark" placeholder="Comment text..." style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:3px;padding:6px 10px;color:var(--text);font-size:12px;" value="${e.text||''}">
+        <button class="btn btn-danger btn-sm" onclick="removeACLEntry(${e.id})">✕</button>
+      </div>`;
+    }
+    const color = e.action === 'permit' ? 'rgba(0,255,136,0.1)' : 'rgba(255,71,87,0.1)';
+    const bcolor = e.action === 'permit' ? 'rgba(0,255,136,0.3)' : 'rgba(255,71,87,0.3)';
+    const tcolor = e.action === 'permit' ? 'var(--accent2)' : 'var(--danger)';
+    return `<div class="entry-block" style="margin-bottom:8px;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <span style="font-size:10px;padding:2px 8px;border-radius:2px;background:${color};color:${tcolor};border:1px solid ${bcolor};font-family:'Syne',sans-serif;font-weight:700;min-width:58px;text-align:center;">${e.action.toUpperCase()}</span>
+        ${isExt ? `<select class="acl-proto" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 8px;color:var(--text);font-size:11px;">
+          <option value="ip">ip</option><option value="tcp">tcp</option><option value="udp">udp</option><option value="icmp">icmp</option><option value="ospf">ospf</option><option value="esp">esp</option><option value="ahp">ahp</option>
+        </select>` : ''}
+        <span style="font-size:10px;color:var(--text-dim);">Rule ${i+1}</span>
+        <button class="btn btn-danger btn-sm" style="margin-left:auto;" onclick="removeACLEntry(${e.id})">✕</button>
+      </div>
+      <div class="form-grid ${isExt ? 'form-grid-2' : ''}">
+        <div class="field"><label>Source IP/Network</label><input type="text" class="acl-src" placeholder="10.0.0.0" value="${e.src||''}"></div>
+        <div class="field"><label>Source Wildcard</label><input type="text" class="acl-src-wc" placeholder="0.0.0.255 or 'host' or 'any'" value="${e.srcwc||'any'}"></div>
+        ${isExt ? `<div class="field"><label>Destination IP/Network</label><input type="text" class="acl-dst" placeholder="192.168.1.0" value="${e.dst||''}"></div>
+        <div class="field"><label>Dest Wildcard / Port</label><input type="text" class="acl-dst-wc" placeholder="0.0.0.255 or 'eq 443'" value="${e.dstwc||'any'}"></div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function generateACL() {
+  const name = document.getElementById('acl-name').value.trim() || 'ACL_LIST';
+  const type = document.getElementById('acl-type').value;
+  const dir  = document.getElementById('acl-dir').value.trim();
+  const isExt = type === 'extended';
+
+  const blocks = document.querySelectorAll('#acl-entries .entry-block');
+  let lines = [];
+  lines.push(`ip access-list ${type} ${name}`);
+  if (dir) lines.push(` ! ${dir}`);
+
+  _aclEntries.forEach((e, i) => {
+    const b = blocks[i];
+    if (!b) return;
+    if (e.action === 'remark') {
+      const txt = b.querySelector('.acl-remark').value.trim() || 'Remark';
+      lines.push(` remark ${txt}`);
+      return;
+    }
+    const src   = b.querySelector('.acl-src')?.value.trim()    || 'any';
+    const srcwc = b.querySelector('.acl-src-wc')?.value.trim() || 'any';
+    const proto = b.querySelector('.acl-proto')?.value || 'ip';
+
+    let rule = ` ${e.action}`;
+    if (isExt) rule += ` ${proto}`;
+
+    if (srcwc === 'any' || src === 'any') {
+      rule += ` any`;
+    } else if (srcwc === 'host') {
+      rule += ` host ${src}`;
+    } else {
+      rule += ` ${src} ${srcwc}`;
+    }
+
+    if (isExt) {
+      const dst   = b.querySelector('.acl-dst')?.value.trim()    || 'any';
+      const dstwc = b.querySelector('.acl-dst-wc')?.value.trim() || 'any';
+      if (dstwc === 'any' || dst === 'any') {
+        rule += ` any`;
+      } else if (dstwc === 'host') {
+        rule += ` host ${dst}`;
+      } else if (dstwc.startsWith('eq ') || dstwc.startsWith('gt ') || dstwc.startsWith('lt ') || dstwc.startsWith('range ')) {
+        rule += ` ${dst} any ${dstwc}`;
+      } else {
+        rule += ` ${dst} ${dstwc}`;
+      }
+    }
+    lines.push(rule);
+  });
+
+  lines.push('!');
+  setOutput('acl-output', lines.join('\n'), 'acl-linecount');
+}
+
+function clearACL() {
+  _aclEntries = [];
+  renderACLEntries();
+  document.getElementById('acl-output').textContent = '';
+  document.getElementById('acl-linecount').textContent = '';
+}
+
+// ══════════════════════════════════════════════
+// CISCO HSRP / VRRP
+// ══════════════════════════════════════════════
+function generateFHRP() {
+  const g    = id => document.getElementById(id).value.trim();
+  const proto      = g('fhrp-proto');
+  const iface      = g('fhrp-iface')        || 'GigabitEthernet0/1';
+  const group      = g('fhrp-group')        || '1';
+  const vip        = g('fhrp-vip')          || '10.0.0.1';
+  const ver        = g('fhrp-ver');
+  const auth       = g('fhrp-auth');
+  const activeIp   = g('fhrp-active-ip')    || '10.0.0.2';
+  const activeMask = g('fhrp-active-mask')  || '255.255.255.0';
+  const activePri  = g('fhrp-active-pri')   || '110';
+  const activePre  = g('fhrp-active-preempt');
+  const activeDel  = g('fhrp-active-delay') || '10';
+  const activeHost = g('fhrp-active-host')  || 'RTR-ACTIVE';
+  const stbyIp     = g('fhrp-standby-ip')   || '10.0.0.3';
+  const stbyMask   = g('fhrp-standby-mask') || '255.255.255.0';
+  const stbyPri    = g('fhrp-standby-pri')  || '100';
+  const stbyPre    = g('fhrp-standby-preempt');
+  const stbyDel    = g('fhrp-standby-delay')|| '10';
+  const stbyHost   = g('fhrp-standby-host') || 'RTR-STANDBY';
+
+  const p = proto === 'hsrp' ? 'standby' : 'vrrp';
+  const isVRRP = proto === 'vrrp';
+
+  const buildRouter = (host, ip, mask, pri, preempt, delay, role) => {
+    const lines = [
+      `! ── ${host} (${role}) ──`,
+      `hostname ${host}`,
+      `!`,
+      `interface ${iface}`,
+      ` ip address ${ip} ${mask}`,
+      ` no shutdown`,
+    ];
+    if (!isVRRP) {
+      lines.push(` ${p} version ${ver}`);
+    }
+    lines.push(` ${p} ${group} ip ${vip}`);
+    lines.push(` ${p} ${group} priority ${pri}`);
+    if (preempt === 'yes') {
+      lines.push(` ${p} ${group} preempt delay minimum ${delay}`);
+    }
+    if (auth) {
+      if (isVRRP) {
+        lines.push(` ${p} ${group} authentication ${auth}`);
+      } else {
+        lines.push(` ${p} ${group} authentication md5 key-string ${auth}`);
+      }
+    }
+    if (!isVRRP) {
+      lines.push(` ${p} ${group} timers 3 10`);
+    }
+    lines.push('!');
+    lines.push(`! Verify: show ${p} ${group}`);
+    return lines.join('\n');
+  };
+
+  const out = [
+    `! ═══════════════════════════════════════`,
+    `! ${proto.toUpperCase()} Configuration`,
+    `! VIP: ${vip}  Group: ${group}  Interface: ${iface}`,
+    `! Generated by NetScript Toolkit`,
+    `! ═══════════════════════════════════════`,
+    '',
+    buildRouter(activeHost, activeIp, activeMask, activePri, activePre, activeDel, 'ACTIVE'),
+    '',
+    buildRouter(stbyHost, stbyIp, stbyMask, stbyPri, stbyPre, stbyDel, 'STANDBY'),
+  ].join('\n');
+
+  setOutput('fhrp-output', out, 'fhrp-linecount');
+}
+
+// ══════════════════════════════════════════════
+// CHECKPOINT SIC RESET
+// ══════════════════════════════════════════════
+function generateSICReset() {
+  const g       = id => document.getElementById(id).value.trim();
+  const gwName  = g('sic-gw-name') || 'GW-SITE-01';
+  const gwIp    = g('sic-gw-ip')   || '10.0.0.254';
+  const key     = g('sic-key')     || 'Cpkey1234';
+  const type    = g('sic-type');
+  const doReset  = document.getElementById('sic-op-reset').checked;
+  const doMgmt   = document.getElementById('sic-op-mgmt').checked;
+  const doVerify = document.getElementById('sic-op-verify').checked;
+
+  const lines = [
+    `# ═══════════════════════════════════════════`,
+    `# Checkpoint SIC Reset — ${gwName} (${gwIp})`,
+    `# ═══════════════════════════════════════════`,
+    '',
+  ];
+
+  if (doReset) {
+    lines.push(`# ── STEP 1: Reset SIC on Gateway (run via Expert CLI / SSH on ${gwName}) ──`);
+    if (type === 'gateway') {
+      lines.push(`cpconfig`);
+      lines.push(`# Select option: Secure Internal Communication`);
+      lines.push(`# Then select: Reset`);
+      lines.push(`# Enter new activation key: ${key}`);
+      lines.push('');
+      lines.push(`# OR use one-liner (R80.20+):`);
+      lines.push(`cpconfig --sic-key "${key}"`);
+    } else if (type === 'mgmt') {
+      lines.push(`cpconfig`);
+      lines.push(`# Select: Secure Internal Communication → Reset`);
+      lines.push(`# Enter key: ${key}`);
+      lines.push(`# Restart services after: cpstop && cpstart`);
+    } else {
+      lines.push(`mdsconfig`);
+      lines.push(`# Select: Secure Internal Communication → Reset`);
+      lines.push(`# Enter key: ${key}`);
+    }
+    lines.push('');
+  }
+
+  if (doMgmt) {
+    lines.push(`# ── STEP 2: Re-initialise SIC from SmartConsole / Management (mgmt_cli) ──`);
+    lines.push(`mgmt_cli set simple-gateway \\`);
+    lines.push(`  name "${gwName}" \\`);
+    lines.push(`  one-time-password "${key}" \\`);
+    lines.push(`  --format json`);
+    lines.push('');
+    lines.push(`# Publish after:`);
+    lines.push(`mgmt_cli publish --format json`);
+    lines.push('');
+  }
+
+  if (doVerify) {
+    lines.push(`# ── STEP 3: Verify SIC Status ──`);
+    lines.push(`# On Gateway (Expert CLI):`);
+    lines.push(`cpstat mg`);
+    lines.push(`# OR:`);
+    lines.push(`fw ver -k`);
+    lines.push('');
+    lines.push(`# From Management (mgmt_cli):`);
+    lines.push(`mgmt_cli show simple-gateway name "${gwName}" --format json | grep -i sic`);
+  }
+
+  setOutput('sic-output', lines.join('\n'), 'sic-linecount');
+}
+
+// ══════════════════════════════════════════════
+// CHANGE REQUEST TEMPLATE
+// ══════════════════════════════════════════════
+let _crSteps = [];
+
+function addCRStep() {
+  _crSteps.push({ id: Date.now(), text: '' });
+  renderCRSteps();
+}
+
+function removeCRStep(id) {
+  _crSteps = _crSteps.filter(s => s.id !== id);
+  renderCRSteps();
+}
+
+function renderCRSteps() {
+  const container = document.getElementById('cr-steps-list');
+  if (!_crSteps.length) {
+    container.innerHTML = `<div style="color:var(--text-dim);font-size:12px;padding:8px 0;">No steps added — click + Add Step below.</div>`;
+    return;
+  }
+  container.innerHTML = _crSteps.map((s, i) => `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+      <span style="font-size:10px;color:var(--accent);font-family:'Syne',sans-serif;font-weight:700;min-width:24px;">${i+1}.</span>
+      <input type="text" class="cr-step-input" placeholder="Step description..." style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:3px;padding:6px 10px;color:var(--text);font-size:12px;" value="${s.text}">
+      <button class="btn btn-danger btn-sm" onclick="removeCRStep(${s.id})">✕</button>
+    </div>`).join('');
+}
+
+function generateCR() {
+  const g = id => (document.getElementById(id)?.value || '').trim();
+
+  const steps = [...document.querySelectorAll('.cr-step-input')].map((el, i) => `  ${i+1}. ${el.value.trim() || '(not specified)'}`).join('\n');
+
+  const divider = '═'.repeat(60);
+  const line    = '─'.repeat(60);
+
+  const out = [
+    divider,
+    `  NETWORK CHANGE REQUEST`,
+    divider,
+    ``,
+    `  CR Number   : ${g('cr-num')        || 'N/A'}`,
+    `  Title       : ${g('cr-title')      || 'N/A'}`,
+    `  Type        : ${g('cr-type')}`,
+    `  Risk Level  : ${g('cr-risk')}`,
+    ``,
+    line,
+    `  PEOPLE`,
+    line,
+    `  Requestor   : ${g('cr-requestor')  || 'N/A'}`,
+    `  Implementor : ${g('cr-impl')       || 'N/A'}`,
+    ``,
+    line,
+    `  SCHEDULE`,
+    line,
+    `  Start       : ${g('cr-start')      || 'N/A'}`,
+    `  End         : ${g('cr-end')        || 'N/A'}`,
+    ``,
+    line,
+    `  SCOPE`,
+    line,
+    `  Devices     : ${g('cr-devices')    || 'N/A'}`,
+    ``,
+    `  Business Impact:`,
+    `  ${g('cr-impact') || 'N/A'}`,
+    ``,
+    line,
+    `  CHANGE DESCRIPTION`,
+    line,
+    `  ${g('cr-desc') || 'N/A'}`,
+    ``,
+    line,
+    `  IMPLEMENTATION STEPS`,
+    line,
+    steps || '  (no steps defined)',
+    ``,
+    line,
+    `  ROLLBACK PLAN`,
+    line,
+    `  ${g('cr-rollback') || 'N/A'}`,
+    ``,
+    line,
+    `  TESTING & VALIDATION`,
+    line,
+    `  ${g('cr-test') || 'N/A'}`,
+    ``,
+    divider,
+    `  Approver Signature: ________________________  Date: __________`,
+    divider,
+  ].join('\n');
+
+  setOutput('cr-output', out, 'cr-linecount');
+}
+
+function clearCR() {
+  ['cr-num','cr-title','cr-requestor','cr-impl','cr-start','cr-end',
+   'cr-devices','cr-impact','cr-desc','cr-rollback','cr-test'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  _crSteps = [];
+  renderCRSteps();
+  document.getElementById('cr-output').textContent = '';
+  document.getElementById('cr-linecount').textContent = '';
+}
+
+function downloadCR() {
+  const text = document.getElementById('cr-output').textContent;
+  if (!text) { toast('Generate the CR first', 'error'); return; }
+  const num = document.getElementById('cr-num').value.trim() || 'change_request';
+  triggerDownload(text, `${num}.txt`);
+}
+
+// Init CR steps on load
+document.addEventListener('DOMContentLoaded', () => {
+  renderCRSteps();
+  addCRStep(); addCRStep(); addCRStep();
 });
 </script>
 </body>

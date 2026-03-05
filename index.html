@@ -28,6 +28,12 @@
     --tag-cp-border: #00d4ff44;
     --tag-cisco: #ff6b3522;
     --tag-cisco-border: #ff6b3544;
+    --tag-tools: #a78bfa22;
+    --tag-tools-border: #a78bfa44;
+    --accent-tools: #a78bfa;
+    --tag-ui: #64748b22;
+    --tag-ui-border: #64748b44;
+    --accent-ui: #94a3b8;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -94,9 +100,13 @@
   .nav-item { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 4px; cursor: pointer; transition: all 0.13s; color: var(--text-dim); border: 1px solid transparent; margin-bottom: 1px; font-size: 12px; user-select: none; }
   .nav-item:hover { background: var(--surface2); color: var(--text); border-color: var(--border); }
   .nav-item.active { background: var(--surface2); color: var(--accent); border-color: var(--border2); }
-  .nav-item.cisco.active { color: var(--accent3); }
+  .nav-item.cisco.active  { color: var(--accent3); }
+  .nav-item.tools.active  { color: var(--accent-tools); }
+  .nav-item.ui.active     { color: var(--accent-ui); }
   .nav-item.active .nav-dot { background: var(--accent); box-shadow: 0 0 5px var(--accent); }
-  .nav-item.cisco.active .nav-dot { background: var(--accent3); box-shadow: 0 0 5px var(--accent3); }
+  .nav-item.cisco.active .nav-dot { background: var(--accent3);      box-shadow: 0 0 5px var(--accent3); }
+  .nav-item.tools.active .nav-dot { background: var(--accent-tools); box-shadow: 0 0 5px var(--accent-tools); }
+  .nav-item.ui.active    .nav-dot { background: var(--accent-ui);    box-shadow: 0 0 5px var(--accent-ui); }
   .nav-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border2); flex-shrink: 0; transition: all 0.13s; }
 
   /* ─── MAIN ─── */
@@ -116,6 +126,7 @@
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 18px; margin-bottom: 14px; }
   .card-title { font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
   .card-title.cisco { color: var(--accent3); }
+  .card-title.tools { color: var(--accent-tools); }
   .card-title.green { color: var(--accent2); }
   .card-count { font-size: 10px; background: var(--surface2); border: 1px solid var(--border2); padding: 1px 7px; border-radius: 10px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; font-weight: 400; letter-spacing: 0; }
 
@@ -192,14 +203,22 @@
   .home-tile::before { content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity 0.18s; }
   .home-tile.cp::before { background: radial-gradient(ellipse at top left, rgba(0,212,255,0.05), transparent 60%); }
   .home-tile.cisco::before { background: radial-gradient(ellipse at top left, rgba(255,107,53,0.05), transparent 60%); }
+  .home-tile.tools::before { background: radial-gradient(ellipse at top left, rgba(167,139,250,0.05), transparent 60%); }
+  .home-tile.ui::before { background: radial-gradient(ellipse at top left, rgba(148,163,184,0.05), transparent 60%); }
   .home-tile:hover { border-color: var(--border2); }
   .home-tile.cp:hover { border-color: #00d4ff44; }
   .home-tile.cp:hover::before { opacity: 1; }
   .home-tile.cisco:hover { border-color: #ff6b3544; }
   .home-tile.cisco:hover::before { opacity: 1; }
+  .home-tile.tools:hover { border-color: #a78bfa44; }
+  .home-tile.tools:hover::before { opacity: 1; }
+  .home-tile.ui:hover { border-color: #64748b44; }
+  .home-tile.ui:hover::before { opacity: 1; }
   .tile-tag { font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; padding: 2px 7px; border-radius: 2px; display: inline-block; margin-bottom: 9px; font-family: 'Syne', sans-serif; font-weight: 600; }
-  .tile-tag.cp { background: var(--tag-cp); border: 1px solid var(--tag-cp-border); color: var(--accent); }
+  .tile-tag.cp    { background: var(--tag-cp);    border: 1px solid var(--tag-cp-border);    color: var(--accent); }
   .tile-tag.cisco { background: var(--tag-cisco); border: 1px solid var(--tag-cisco-border); color: var(--accent3); }
+  .tile-tag.tools { background: var(--tag-tools); border: 1px solid var(--tag-tools-border); color: var(--accent-tools); }
+  .tile-tag.ui    { background: var(--tag-ui);    border: 1px solid var(--tag-ui-border);    color: var(--accent-ui); }
   .tile-name { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--text-bright); margin-bottom: 5px; }
   .tile-desc { font-size: 11px; color: var(--text-dim); line-height: 1.5; }
 
@@ -280,16 +299,16 @@
     </div>
     <div class="nav-section">
       <div class="nav-label">Network Tools</div>
-      <div class="nav-item" onclick="navigate('subnet_calc')"><span class="nav-dot"></span>Subnet Calculator</div>
-      <div class="nav-item" onclick="navigate('ip_planner')"><span class="nav-dot"></span>IP / VLAN Planner</div>
-      <div class="nav-item" onclick="navigate('pass_gen')"><span class="nav-dot"></span>Password Generator</div>
-      <div class="nav-item" onclick="navigate('pass_hash')"><span class="nav-dot"></span>OpenSSL Hash</div>
-      <div class="nav-item" onclick="navigate('wildcard')"><span class="nav-dot"></span>Wildcard Converter</div>
-      <div class="nav-item" onclick="navigate('ip_range')"><span class="nav-dot"></span>IP Range Expander</div>
-      <div class="nav-item" onclick="navigate('nat_builder')"><span class="nav-dot"></span>NAT Rule Builder</div>
-      <div class="nav-item" onclick="navigate('sic_reset')"><span class="nav-dot"></span>SIC Reset</div>
-      <div class="nav-item" onclick="navigate('change_request')"><span class="nav-dot"></span>Change Request</div>
-      <div class="nav-item" onclick="navigate('theme_toggle')" id="nav-theme" style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px;"><span class="nav-dot"></span>🌙 Dark Mode</div>
+      <div class="nav-item tools" onclick="navigate('subnet_calc')"><span class="nav-dot"></span>Subnet Calculator</div>
+      <div class="nav-item tools" onclick="navigate('ip_planner')"><span class="nav-dot"></span>IP / VLAN Planner</div>
+      <div class="nav-item tools" onclick="navigate('pass_gen')"><span class="nav-dot"></span>Password Generator</div>
+      <div class="nav-item tools" onclick="navigate('pass_hash')"><span class="nav-dot"></span>OpenSSL Hash</div>
+      <div class="nav-item tools" onclick="navigate('wildcard')"><span class="nav-dot"></span>Wildcard Converter</div>
+      <div class="nav-item tools" onclick="navigate('ip_range')"><span class="nav-dot"></span>IP Range Expander</div>
+      <div class="nav-item tools" onclick="navigate('nat_builder')"><span class="nav-dot"></span>NAT Rule Builder</div>
+      <div class="nav-item tools" onclick="navigate('sic_reset')"><span class="nav-dot"></span>SIC Reset</div>
+      <div class="nav-item tools" onclick="navigate('change_request')"><span class="nav-dot"></span>Change Request</div>
+      <div class="nav-item ui" onclick="navigate('theme_toggle')" id="nav-theme" style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px;"><span class="nav-dot"></span>🌙 Dark Mode</div>
     </div>
   </nav>
 
@@ -327,16 +346,16 @@
       </div>
       <div class="section-title" style="margin-top:22px;">Network Tools</div>
       <div class="home-grid">
-        <div class="home-tile cp" onclick="navigate('subnet_calc')"><span class="tile-tag cp">Tools</span><div class="tile-name">Subnet Calculator</div><div class="tile-desc">CIDR to subnet mask, usable hosts, network & broadcast address with live output.</div></div>
-        <div class="home-tile cp" onclick="navigate('ip_planner')"><span class="tile-tag cp">Tools</span><div class="tile-name">IP / VLAN Planner</div><div class="tile-desc">Enter VLAN count & hosts per VLAN — auto-generates supernet and per-VLAN subnets with live editing.</div></div>
-        <div class="home-tile cp" onclick="navigate('pass_gen')"><span class="tile-tag cp">Tools</span><div class="tile-name">Password Generator</div><div class="tile-desc">Generate complex passwords with custom length, character sets, and strength indicator.</div></div>
-        <div class="home-tile cp" onclick="navigate('pass_hash')"><span class="tile-tag cp">Tools</span><div class="tile-name">OpenSSL Hash</div><div class="tile-desc">Generate crypt-format hashes matching <code style="color:var(--accent)">openssl passwd -1/-5/-6</code> with MD5, SHA-256, SHA-512.</div></div>
-        <div class="home-tile cp" onclick="navigate('wildcard')"><span class="tile-tag cp">Tools</span><div class="tile-name">Wildcard Converter</div><div class="tile-desc">Instantly convert subnet masks ↔ wildcard masks. Essential for ACL and firewall rule building.</div></div>
-        <div class="home-tile cp" onclick="navigate('ip_range')"><span class="tile-tag cp">Tools</span><div class="tile-name">IP Range Expander</div><div class="tile-desc">Enter a range like <code style="color:var(--accent)">10.0.0.1–10.0.0.50</code> and get every IP listed, ready for bulk object creation.</div></div>
+        <div class="home-tile tools" onclick="navigate('subnet_calc')"><span class="tile-tag tools">Tools</span><div class="tile-name">Subnet Calculator</div><div class="tile-desc">CIDR to subnet mask, usable hosts, network & broadcast address with live output.</div></div>
+        <div class="home-tile tools" onclick="navigate('ip_planner')"><span class="tile-tag tools">Tools</span><div class="tile-name">IP / VLAN Planner</div><div class="tile-desc">Enter VLAN count & hosts per VLAN — auto-generates supernet and per-VLAN subnets with live editing.</div></div>
+        <div class="home-tile tools" onclick="navigate('pass_gen')"><span class="tile-tag tools">Tools</span><div class="tile-name">Password Generator</div><div class="tile-desc">Generate complex passwords with custom length, character sets, and strength indicator.</div></div>
+        <div class="home-tile tools" onclick="navigate('pass_hash')"><span class="tile-tag tools">Tools</span><div class="tile-name">OpenSSL Hash</div><div class="tile-desc">Generate crypt-format hashes matching <code style="color:var(--accent-tools)">openssl passwd -1/-5/-6</code> with MD5, SHA-256, SHA-512.</div></div>
+        <div class="home-tile tools" onclick="navigate('wildcard')"><span class="tile-tag tools">Tools</span><div class="tile-name">Wildcard Converter</div><div class="tile-desc">Instantly convert subnet masks ↔ wildcard masks. Essential for ACL and firewall rule building.</div></div>
+        <div class="home-tile tools" onclick="navigate('ip_range')"><span class="tile-tag tools">Tools</span><div class="tile-name">IP Range Expander</div><div class="tile-desc">Enter a range like <code style="color:var(--accent-tools)">10.0.0.1–10.0.0.50</code> and get every IP listed, ready for bulk object creation.</div></div>
         <div class="home-tile cp" onclick="navigate('nat_builder')"><span class="tile-tag cp">Checkpoint</span><div class="tile-name">NAT Rule Builder</div><div class="tile-desc">Generate <code style="color:var(--accent)">add nat-rule</code> commands for hide NAT and static NAT policies.</div></div>
         <div class="home-tile cp" onclick="navigate('sic_reset')"><span class="tile-tag cp">Checkpoint</span><div class="tile-name">SIC Reset</div><div class="tile-desc">Generate SIC reset and re-initialise commands for gateways and management servers.</div></div>
-        <div class="home-tile cp" onclick="navigate('change_request')"><span class="tile-tag cp">Tools</span><div class="tile-name">Change Request Template</div><div class="tile-desc">Fill in a structured network change request and export it as plain text or copy to clipboard.</div></div>
-        <div class="home-tile cp" onclick="toggleTheme()" style="cursor:pointer;"><span class="tile-tag cp">UI</span><div class="tile-name" id="theme-tile-label">🌙 Switch to Light Mode</div><div class="tile-desc">Toggle between dark and light themes for comfortable viewing.</div></div>
+        <div class="home-tile tools" onclick="navigate('change_request')"><span class="tile-tag tools">Tools</span><div class="tile-name">Change Request Template</div><div class="tile-desc">Fill in a structured network change request and export it as plain text or copy to clipboard.</div></div>
+        <div class="home-tile ui" onclick="toggleTheme()" style="cursor:pointer;"><span class="tile-tag ui">UI</span><div class="tile-name" id="theme-tile-label">🌙 Switch to Light Mode</div><div class="tile-desc">Toggle between dark and light themes for comfortable viewing.</div></div>
       </div>
     </div>
 

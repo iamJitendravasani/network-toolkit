@@ -594,7 +594,6 @@
           <div class="field"><label>Anti-Virus</label><select id="sgw-av"><option value="true">TRUE</option><option value="false">FALSE</option></select></div>
           <div class="field"><label>Threat Emulation</label><select id="sgw-te"><option value="false">FALSE</option><option value="true">TRUE</option></select></div>
           <div class="field"><label>Identity Awareness</label><select id="sgw-ia"><option value="false">FALSE</option><option value="true">TRUE</option></select></div>
-          <div class="field"><label>HTTPS Inspection</label><select id="sgw-https"><option value="false">FALSE</option><option value="true">TRUE</option></select></div>
           <div class="field"><label>NAT Hide Internal</label><select id="sgw-nat"><option value="true">TRUE</option><option value="false">FALSE</option></select></div>
           <div class="field"><label>Forward Logs to Log Server</label><select id="sgw-fwd"><option value="true">TRUE</option><option value="false">FALSE</option></select></div>
         </div>
@@ -607,7 +606,7 @@
           <div class="field"><label>Backup Server 1</label><input type="text" id="sgw-log2" placeholder="Backup Server 1 Name"></div>
           <div class="field"><label>Backup Server 2</label><input type="text" id="sgw-log3" placeholder="Backup Server 2 Name"></div>
           <div class="field"><label>Fetch Policy</label><input type="text" id="sgw-policy" placeholder="Policy Server Name"></div>
-          <div class="field"><label>Connection Persistence</label><select id="sgw-persist"><option value="keep-data-connections">keep-data-connections</option><option value="keep-all-connections">keep-all-connections</option><option value="new-ip-only">new-ip-only</option><option value="none">none</option></select></div>
+          <div class="field"><label>Connection Persistence</label><select id="sgw-persist"><option value="keep-all-connections">keep-all-connections</option><option value="keep-data-connections">keep-data-connections</option><option value="rematch-connections">rematch-connections</option></select></div>
         </div>
       </div>
       <div class="card">
@@ -692,7 +691,7 @@
             <option value="ClusterXL Load Sharing Unicast">ClusterXL Load Sharing Unicast</option>
             <option value="ElasticXL">ElasticXL (R82+)</option>
           </select></div>
-          <div class="field"><label>Connection Persistence</label><select id="cgw-persist"><option value="keep-data-connections">keep-data-connections</option><option value="keep-all-connections">keep-all-connections</option><option value="new-ip-only">new-ip-only</option><option value="none">none</option></select></div>
+          <div class="field"><label>Connection Persistence</label><select id="cgw-persist"><option value="keep-all-connections">keep-all-connections</option><option value="keep-data-connections">keep-data-connections</option><option value="rematch-connections">rematch-connections</option></select></div>
           <div class="field"><label>Firewall</label><select id="cgw-fw"><option value="true">TRUE</option><option value="false">FALSE</option></select></div>
           <div class="field"><label>VPN</label><select id="cgw-vpn"><option value="false">FALSE</option><option value="true">TRUE</option></select></div>
           <div class="field"><label>IPS</label><select id="cgw-ips"><option value="true">TRUE</option><option value="false">FALSE</option></select></div>
@@ -703,7 +702,6 @@
           <div class="field"><label>Anti-Virus</label><select id="cgw-av"><option value="true">TRUE</option><option value="false">FALSE</option></select></div>
           <div class="field"><label>Threat Emulation</label><select id="cgw-te"><option value="false">FALSE</option><option value="true">TRUE</option></select></div>
           <div class="field"><label>Identity Awareness</label><select id="cgw-ia"><option value="false">FALSE</option><option value="true">TRUE</option></select></div>
-          <div class="field"><label>HTTPS Inspection</label><select id="cgw-https"><option value="false">FALSE</option><option value="true">TRUE</option></select></div>
           <div class="field"><label>NAT Hide Internal</label><select id="cgw-nat"><option value="true">TRUE</option><option value="false">FALSE</option></select></div>
         </div>
       </div>
@@ -1937,7 +1935,6 @@ function generateSGWOutput() {
   out += ' content-awareness ' + g('sgw-ctnt');
   out += ' threat-emulation ' + g('sgw-te');
   out += ' identity-awareness ' + g('sgw-ia');
-  out += ' https-inspection ' + g('sgw-https');
   out += ' platform-portal-settings.portal-web-settings.main-url "' + g('sgw-portal') + '"';
   out += ' platform-portal-settings.portal-web-settings.ip-address "' + g('sgw-ip') + '"';
   out += ' nat-hide-internal-interfaces ' + g('sgw-nat');
@@ -1947,6 +1944,7 @@ function generateSGWOutput() {
   out += ' send-logs-to-backup-server.2 "' + g('sgw-log3') + '"';
   out += ' fetch-policy "' + g('sgw-policy') + '"';
   out += ' advanced-settings.connection-persistence "' + g('sgw-persist') + '"';
+  out += ' logs-settings.free-disk-space-metrics percent';
 
   // --- Manual interfaces (added via + Add Interface button) ---
   var ifaceCount = document.getElementById('sgw-iface-entries').querySelectorAll('.entry-block').length;
@@ -2097,7 +2095,6 @@ function generateCGWOutput() {
   out += ' content-awareness ' + g('cgw-ctnt');
   out += ' threat-emulation ' + g('cgw-te');
   out += ' identity-awareness ' + g('cgw-ia');
-  out += ' https-inspection ' + g('cgw-https');
   out += ' cluster-mode "' + g('cgw-mode') + '"';
   out += ' platform-portal-settings.portal-web-settings.main-url "' + g('cgw-portal') + '"';
   out += ' nat-hide-internal-interfaces ' + g('cgw-nat');
@@ -2106,6 +2103,7 @@ function generateCGWOutput() {
   out += ' send-logs-to-backup-server.2 "' + g('cgw-log3') + '"';
   out += ' fetch-policy "' + g('cgw-policy') + '"';
   out += ' advanced-settings.connection-persistence "' + g('cgw-persist') + '"';
+  out += ' logs-settings.free-disk-space-metrics percent';
 
   out += ' members.1.name "' + g('cgw-m1name') + '" members.1.ip-address "' + g('cgw-m1ip') + '"';
   out += ' members.1.color ' + g('cgw-color');

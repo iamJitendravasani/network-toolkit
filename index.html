@@ -612,9 +612,27 @@
       </div>
       <div class="card">
         <div class="card-title">Interfaces <span class="card-count" id="sgw-iface-count">0</span></div>
+
+        <!-- CSV IMPORT PANEL -->
+        <div id="sgw-import-panel" style="display:none;margin-bottom:14px;">
+          <div class="info-box" style="margin-bottom:8px;">
+            <strong style="color:var(--accent);">Paste from Excel</strong> — Copy rows from your spreadsheet and paste below.<br>
+            Expected columns (tab or comma separated):<br>
+            <code>Interface Name · IPv4 Address · Network Mask · Anti-Spoofing · Topology · Comments</code><br>
+            <span style="color:var(--text-dim);font-size:10px;">Anti-Spoofing: TRUE/FALSE &nbsp;|&nbsp; Topology: INTERNAL/EXTERNAL &nbsp;|&nbsp; Comments optional</span>
+          </div>
+          <textarea id="sgw-csv-input" rows="6" placeholder="eth0	192.168.1.1	255.255.255.0	TRUE	EXTERNAL	WAN-Interface&#10;eth1	10.10.10.1	255.255.255.0	TRUE	INTERNAL	LAN-Interface&#10;eth2	172.16.0.1	255.255.255.0	TRUE	INTERNAL	DMZ-Interface" style="width:100%;background:var(--output-bg);border:1px solid var(--border);color:var(--text);padding:10px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:11px;resize:vertical;outline:none;line-height:1.6;"></textarea>
+          <div class="btn-row" style="margin-top:8px;">
+            <button class="btn btn-success btn-sm" onclick="importSGWInterfaces()">↳ Import Interfaces</button>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('sgw-import-panel').style.display='none'">✕ Cancel</button>
+            <span id="sgw-import-msg" style="font-size:11px;color:var(--accent2);"></span>
+          </div>
+        </div>
+
         <div id="sgw-iface-entries"></div>
         <div class="btn-row">
           <button class="btn btn-primary btn-sm" onclick="addGWIface('sgw')">+ Add Interface</button>
+          <button class="btn btn-warn btn-sm" onclick="document.getElementById('sgw-import-panel').style.display=document.getElementById('sgw-import-panel').style.display==='none'?'block':'none'">⇩ Paste from Excel</button>
         </div>
       </div>
       <div class="btn-row">
@@ -1795,6 +1813,73 @@ function addGWIface(prefix) {
       </div>
     </div>`);
   updateCount(containerId, countId);
+}
+
+function importSGWInterfaces() {
+  const raw = document.getElementById('sgw-csv-input').value.trim();
+  if (!raw) { toast('Paste some data first', 'error'); return; }
+
+  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+  let added = 0, skipped = 0;
+
+  lines.forEach(line => {
+    // Support tab-separated (Excel paste) or comma-separated
+    const sep = line.includes('\t') ? '\t' : ',';
+    const cols = line.split(sep).map(c => c.trim().replace(/^["']|["']$/g, ''));
+
+    // Skip header rows
+    if (!cols[0] || cols[0].toLowerCase().includes('interface') || cols[0].toLowerCase().includes('name')) { skipped++; return; }
+
+    const ifaceName  = cols[0] || '';
+    const ipv4       = cols[1] || '';
+    const mask       = cols[2] || '';
+    const antispoof  = (cols[3] || 'true').toUpperCase() === 'FALSE' ? 'false' : 'true';
+    const topology   = (cols[4] || 'INTERNAL').toUpperCase() === 'EXTERNAL' ? 'EXTERNAL' : 'INTERNAL';
+    const comments   = cols[5] || '';
+
+    const containerId = 'sgw-iface-entries';
+    const countId = 'sgw-iface-count';
+    const n = (document.getElementById(containerId)?.querySelectorAll('.entry-block').length || 0) + 1;
+
+    document.getElementById(containerId).insertAdjacentHTML('beforeend', `
+      <div class="entry-block">
+        <div class="entry-header">
+          <span class="entry-num">Interface #${n}</span>
+          <button class="entry-remove" onclick="removeEntry(this,'${containerId}','${countId}')" title="Remove">✕</button>
+        </div>
+        <div class="form-grid form-grid-3">
+          <div class="field"><label>Name</label><input type="text" class="gwiface-name" value="${ifaceName}" placeholder="eth1"></div>
+          <div class="field"><label>Comments</label><input type="text" class="gwiface-comments" value="${comments}"></div>
+          <div class="field"><label>IPv4 Address</label><input type="text" class="gwiface-ip" value="${ipv4}" placeholder="10.0.0.1"></div>
+          <div class="field"><label>Network Mask</label><input type="text" class="gwiface-mask" value="${mask}" placeholder="255.255.255.0"></div>
+          <div class="field"><label>Anti-Spoofing</label>
+            <select class="gwiface-antispoof">
+              <option value="true" ${antispoof==='true'?'selected':''}>TRUE</option>
+              <option value="false" ${antispoof==='false'?'selected':''}>FALSE</option>
+            </select>
+          </div>
+          <div class="field"><label>Topology</label>
+            <select class="gwiface-topo">
+              <option value="INTERNAL" ${topology==='INTERNAL'?'selected':''}>INTERNAL</option>
+              <option value="EXTERNAL" ${topology==='EXTERNAL'?'selected':''}>EXTERNAL</option>
+            </select>
+          </div>
+        </div>
+      </div>`);
+    updateCount(containerId, countId);
+    added++;
+  });
+
+  const msg = document.getElementById('sgw-import-msg');
+  if (added > 0) {
+    msg.textContent = `✔ ${added} interface${added>1?'s':''} imported${skipped?' ('+skipped+' row'+(skipped>1?'s':'')+' skipped)':''}`;
+    toast(`${added} interface${added>1?'s':''} imported!`);
+    document.getElementById('sgw-csv-input').value = '';
+  } else {
+    msg.style.color = 'var(--danger)';
+    msg.textContent = 'No valid rows found — check column order.';
+    toast('No valid rows found', 'error');
+  }
 }
 
 function generateSGWOutput() {

@@ -613,28 +613,22 @@
       <div class="card">
         <div class="card-title">Interfaces <span class="card-count" id="sgw-iface-count">0</span></div>
 
-        <!-- CSV IMPORT PANEL -->
-        <div id="sgw-import-panel" style="display:none;margin-bottom:14px;">
-          <div class="info-box" style="margin-bottom:8px;">
-            <strong style="color:var(--accent);">Paste from Excel</strong> — Copy rows from your spreadsheet and paste below.<br>
-            Expected columns (tab or comma separated):<br>
-            <code>Interface Name · IPv4 Address · Network Mask · Anti-Spoofing · Topology · Comments</code><br>
-            <span style="color:var(--text-dim);font-size:10px;">Anti-Spoofing: TRUE/FALSE &nbsp;|&nbsp; Topology: INTERNAL/EXTERNAL &nbsp;|&nbsp; Comments optional</span>
-          </div>
-          <textarea id="sgw-csv-input" rows="6" placeholder="eth0	192.168.1.1	255.255.255.0	TRUE	EXTERNAL	WAN-Interface&#10;eth1	10.10.10.1	255.255.255.0	TRUE	INTERNAL	LAN-Interface&#10;eth2	172.16.0.1	255.255.255.0	TRUE	INTERNAL	DMZ-Interface" style="width:100%;background:var(--output-bg);border:1px solid var(--border);color:var(--text);padding:10px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:11px;resize:vertical;outline:none;line-height:1.6;"></textarea>
-          <div class="btn-row" style="margin-top:8px;">
-            <button class="btn btn-success btn-sm" onclick="importSGWInterfaces()">↳ Import Interfaces</button>
-            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('sgw-import-panel').style.display='none'">✕ Cancel</button>
-            <span id="sgw-import-msg" style="font-size:11px;color:var(--accent2);"></span>
-          </div>
-        </div>
-
         <div id="sgw-iface-entries"></div>
         <div class="btn-row">
           <button class="btn btn-primary btn-sm" onclick="addGWIface('sgw')">+ Add Interface</button>
-          <button class="btn btn-warn btn-sm" onclick="document.getElementById('sgw-import-panel').style.display=document.getElementById('sgw-import-panel').style.display==='none'?'block':'none'">⇩ Paste from Excel</button>
+          <button class="btn btn-warn btn-sm" onclick="sgwToggleBulk()">⇩ Paste from Excel</button>
         </div>
-      </div>
+
+        <!-- BULK PASTE - simple textarea, parsed at generate time -->
+        <div id="sgw-bulk-panel" style="display:none;margin-top:12px;background:var(--surface2);border:1px solid var(--border2);border-radius:4px;padding:12px;">
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:8px;">
+            Paste rows directly from Excel. Column order: <code style="color:var(--accent);">Name, IP, Mask, Anti-Spoofing, Topology, Comments</code><br>
+            <span style="color:var(--warn);font-size:10px;">Tab or comma separated. These will be included in the generated command.</span>
+          </div>
+          <textarea id="sgw-bulk-text" rows="10" placeholder="eth5&#9;185.88.56.126&#9;255.255.255.248&#9;TRUE&#9;External&#9;ISP1" style="width:100%;background:var(--output-bg);border:1px solid var(--accent2);color:var(--text);padding:10px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:12px;resize:vertical;outline:none;line-height:1.7;"></textarea>
+          <div style="font-size:10px;color:var(--accent2);margin-top:6px;" id="sgw-bulk-count">Paste data above — it will be included automatically when you click Generate.</div>
+        </div>
+
       <div class="btn-row">
         <button class="btn btn-success" onclick="generateSGWOutput()">▶ Generate Command</button>
         <button class="btn btn-primary" onclick="downloadOutput('sgw-output','simple_gateway.txt')">↓ Download</button>
@@ -1550,6 +1544,11 @@ function updateCount(containerId, badgeId) {
   if (!badge) return;
   const count = document.getElementById(containerId)?.querySelectorAll(':scope > .entry-block').length || 0;
   badge.textContent = count;
+  // Also update generate button counter for SGW
+  if (containerId === 'sgw-iface-entries') {
+    const gc = document.getElementById('sgw-gen-count');
+    if (gc) gc.textContent = count;
+  }
 }
 
 // ══════════════════════════════════════════════
@@ -1794,136 +1793,184 @@ function generateGaiaIfaceOutput(containerId, outputId, useDescription) {
 // SIMPLE GATEWAY
 // ══════════════════════════════════════════════
 function addGWIface(prefix) {
-  const containerId = `${prefix}-iface-entries`;
-  const countId = `${prefix}-iface-count`;
+  const containerId = prefix + '-iface-entries';
+  const countId = prefix + '-iface-count';
   const n = (document.getElementById(containerId)?.querySelectorAll('.entry-block').length || 0) + 1;
-  document.getElementById(containerId).insertAdjacentHTML('beforeend', `
-    <div class="entry-block">
-      <div class="entry-header">
-        <span class="entry-num">Interface #${n}</span>
-        <button class="entry-remove" onclick="removeEntry(this,'${containerId}','${countId}')" title="Remove">✕</button>
-      </div>
-      <div class="form-grid form-grid-3">
-        <div class="field"><label>Name</label><input type="text" class="gwiface-name" placeholder="eth1"></div>
-        <div class="field"><label>Comments</label><input type="text" class="gwiface-comments"></div>
-        <div class="field"><label>IPv4 Address</label><input type="text" class="gwiface-ip" placeholder="10.0.0.1"></div>
-        <div class="field"><label>Network Mask</label><input type="text" class="gwiface-mask" placeholder="255.255.255.0"></div>
-        <div class="field"><label>Anti-Spoofing</label><select class="gwiface-antispoof"><option value="true">TRUE</option><option value="false">FALSE</option></select></div>
-        <div class="field"><label>Topology</label><select class="gwiface-topo"><option value="INTERNAL">INTERNAL</option><option value="EXTERNAL">EXTERNAL</option></select></div>
-      </div>
-    </div>`);
+  document.getElementById(containerId).insertAdjacentHTML('beforeend',
+    '<div class="entry-block">' +
+    '<div class="entry-header">' +
+    '<span class="entry-num">Interface #' + n + '</span>' +
+    '<button class="entry-remove" onclick="removeSGWIface(this)" title="Remove">✕</button>' +
+    '</div>' +
+    '<div class="form-grid form-grid-3">' +
+    '<div class="field"><label>Name</label><input type="text" id="sgw-iface-name-' + n + '" placeholder="eth1"></div>' +
+    '<div class="field"><label>Comments</label><input type="text" id="sgw-iface-comments-' + n + '"></div>' +
+    '<div class="field"><label>IPv4 Address</label><input type="text" id="sgw-iface-ip-' + n + '" placeholder="10.0.0.1"></div>' +
+    '<div class="field"><label>Network Mask</label><input type="text" id="sgw-iface-mask-' + n + '" placeholder="255.255.255.0"></div>' +
+    '<div class="field"><label>Anti-Spoofing</label><select id="sgw-iface-spoof-' + n + '"><option value="true">TRUE</option><option value="false">FALSE</option></select></div>' +
+    '<div class="field"><label>Topology</label><select id="sgw-iface-topo-' + n + '"><option value="INTERNAL">INTERNAL</option><option value="EXTERNAL">EXTERNAL</option></select></div>' +
+    '</div></div>'
+  );
   updateCount(containerId, countId);
 }
 
+function removeSGWIface(btn) {
+  btn.closest('.entry-block').remove();
+  updateCount('sgw-iface-entries', 'sgw-iface-count');
+}
+
 function importSGWInterfaces() {
-  const raw = document.getElementById('sgw-csv-input').value.trim();
-  if (!raw) { toast('Paste some data first', 'error'); return; }
+  var raw = document.getElementById('sgw-csv-input').value.trim();
+  if (!raw) { alert('No data found in textarea!'); return; }
+  alert('Import starting... ' + raw.split('\n').length + ' lines detected');
 
-  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
-  let added = 0, skipped = 0;
+  var container = document.getElementById('sgw-iface-entries');
+  var existing  = container.querySelectorAll('.entry-block').length;
+  var lines     = raw.split('\n');
+  var added     = 0;
 
-  lines.forEach(line => {
-    // Support tab-separated (Excel paste) or comma-separated
-    const sep = line.includes('\t') ? '\t' : ',';
-    const cols = line.split(sep).map(c => c.trim().replace(/^["']|["']$/g, ''));
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i].trim();
+    if (!line) continue;
 
-    // Skip header rows
-    if (!cols[0] || cols[0].toLowerCase().includes('interface') || cols[0].toLowerCase().includes('name')) { skipped++; return; }
+    // support tab or comma
+    var cols = line.indexOf('\t') >= 0 ? line.split('\t') : line.split(',');
+    for (var c = 0; c < cols.length; c++) cols[c] = cols[c].trim();
 
-    const ifaceName  = cols[0] || '';
-    const ipv4       = cols[1] || '';
-    const mask       = cols[2] || '';
-    const antispoof  = (cols[3] || 'true').toUpperCase() === 'FALSE' ? 'false' : 'true';
-    const topology   = (cols[4] || 'INTERNAL').toUpperCase() === 'EXTERNAL' ? 'EXTERNAL' : 'INTERNAL';
-    const comments   = cols[5] || '';
+    var name = cols[0] || '';
+    if (!name) continue;
 
-    const containerId = 'sgw-iface-entries';
-    const countId = 'sgw-iface-count';
-    const n = (document.getElementById(containerId)?.querySelectorAll('.entry-block').length || 0) + 1;
+    var ip       = cols[1] || '';
+    var mask     = cols[2] || '';
+    var spoof    = (cols[3] || '').toUpperCase() === 'FALSE' ? 'false' : 'true';
+    var topology = (cols[4] || '').toUpperCase().indexOf('EXT') >= 0 ? 'EXTERNAL' : 'INTERNAL';
+    var comments = cols[5] || '';
 
-    document.getElementById(containerId).insertAdjacentHTML('beforeend', `
-      <div class="entry-block">
-        <div class="entry-header">
-          <span class="entry-num">Interface #${n}</span>
-          <button class="entry-remove" onclick="removeEntry(this,'${containerId}','${countId}')" title="Remove">✕</button>
-        </div>
-        <div class="form-grid form-grid-3">
-          <div class="field"><label>Name</label><input type="text" class="gwiface-name" value="${ifaceName}" placeholder="eth1"></div>
-          <div class="field"><label>Comments</label><input type="text" class="gwiface-comments" value="${comments}"></div>
-          <div class="field"><label>IPv4 Address</label><input type="text" class="gwiface-ip" value="${ipv4}" placeholder="10.0.0.1"></div>
-          <div class="field"><label>Network Mask</label><input type="text" class="gwiface-mask" value="${mask}" placeholder="255.255.255.0"></div>
-          <div class="field"><label>Anti-Spoofing</label>
-            <select class="gwiface-antispoof">
-              <option value="true" ${antispoof==='true'?'selected':''}>TRUE</option>
-              <option value="false" ${antispoof==='false'?'selected':''}>FALSE</option>
-            </select>
-          </div>
-          <div class="field"><label>Topology</label>
-            <select class="gwiface-topo">
-              <option value="INTERNAL" ${topology==='INTERNAL'?'selected':''}>INTERNAL</option>
-              <option value="EXTERNAL" ${topology==='EXTERNAL'?'selected':''}>EXTERNAL</option>
-            </select>
-          </div>
-        </div>
-      </div>`);
-    updateCount(containerId, countId);
+    var n = existing + added + 1;
+
+    container.insertAdjacentHTML('beforeend',
+      '<div class="entry-block">' +
+        '<div class="entry-header">' +
+          '<span class="entry-num">Interface #' + n + '</span>' +
+          '<button class="entry-remove" onclick="removeSGWIface(this)" title="Remove">✕</button>' +
+        '</div>' +
+        '<div class="form-grid form-grid-3">' +
+          '<div class="field"><label>Name</label><input type="text" id="sgw-iface-name-' + n + '" placeholder="eth1"></div>' +
+          '<div class="field"><label>Comments</label><input type="text" id="sgw-iface-comments-' + n + '"></div>' +
+          '<div class="field"><label>IPv4 Address</label><input type="text" id="sgw-iface-ip-' + n + '" placeholder="10.0.0.1"></div>' +
+          '<div class="field"><label>Network Mask</label><input type="text" id="sgw-iface-mask-' + n + '" placeholder="255.255.255.0"></div>' +
+          '<div class="field"><label>Anti-Spoofing</label><select id="sgw-iface-spoof-' + n + '"><option value="true">TRUE</option><option value="false">FALSE</option></select></div>' +
+          '<div class="field"><label>Topology</label><select id="sgw-iface-topo-' + n + '"><option value="INTERNAL">INTERNAL</option><option value="EXTERNAL">EXTERNAL</option></select></div>' +
+        '</div>' +
+      '</div>'
+    );
+
+    document.getElementById('sgw-iface-name-'     + n).value = name;
+    document.getElementById('sgw-iface-comments-' + n).value = comments;
+    document.getElementById('sgw-iface-ip-'       + n).value = ip;
+    document.getElementById('sgw-iface-mask-'     + n).value = mask;
+    document.getElementById('sgw-iface-spoof-'    + n).value = spoof;
+    document.getElementById('sgw-iface-topo-'     + n).value = topology;
+
     added++;
-  });
+  }
 
-  const msg = document.getElementById('sgw-import-msg');
+  updateCount('sgw-iface-entries', 'sgw-iface-count');
+
   if (added > 0) {
-    msg.textContent = `✔ ${added} interface${added>1?'s':''} imported${skipped?' ('+skipped+' row'+(skipped>1?'s':'')+' skipped)':''}`;
-    toast(`${added} interface${added>1?'s':''} imported!`);
+    document.getElementById('sgw-import-msg').style.color = 'var(--accent2)';
+    document.getElementById('sgw-import-msg').textContent = '✔ ' + added + ' interface' + (added > 1 ? 's' : '') + ' imported';
     document.getElementById('sgw-csv-input').value = '';
+    toast(added + ' interfaces imported!');
   } else {
-    msg.style.color = 'var(--danger)';
-    msg.textContent = 'No valid rows found — check column order.';
-    toast('No valid rows found', 'error');
+    document.getElementById('sgw-import-msg').style.color = 'var(--danger)';
+    document.getElementById('sgw-import-msg').textContent = 'No rows found';
+    toast('No rows found', 'error');
   }
 }
 
+
+function sgwToggleBulk() {
+  var p = document.getElementById('sgw-bulk-panel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
 function generateSGWOutput() {
-  const g = id => document.getElementById(id).value.trim();
-  let out = `add simple-gateway`;
-  out += ` name "${g('sgw-name')}"`;
-  out += ` color ${g('sgw-color')}`;
-  out += ` ip-address "${g('sgw-ip')}"`;
-  out += ` hardware "${g('sgw-hw')}"`;
-  out += ` version "${g('sgw-ver')}"`;
-  out += ` comments "${g('sgw-comments')}"`;
-  out += ` firewall ${g('sgw-fw')}`;
-  out += ` ips ${g('sgw-ips')}`;
-  out += ` anti-bot ${g('sgw-ab')}`;
-  out += ` anti-virus ${g('sgw-av')}`;
-  out += ` vpn ${g('sgw-vpn')}`;
-  out += ` application-control ${g('sgw-appc')}`;
-  out += ` url-filtering ${g('sgw-urlf')}`;
-  out += ` content-awareness ${g('sgw-ctnt')}`;
-  out += ` threat-emulation ${g('sgw-te')}`;
-  out += ` identity-awareness ${g('sgw-ia')}`;
-  out += ` https-inspection.enabled ${g('sgw-https')}`;
-  out += ` platform-portal-settings.portal-web-settings.main-url "${g('sgw-portal')}"`;
-  out += ` platform-portal-settings.portal-web-settings.ip-address "${g('sgw-ip')}"`;
-  out += ` nat-settings.hide-internal-interfaces ${g('sgw-nat')}`;
-  out += ` logs-settings.forward-logs-to-log-server ${g('sgw-fwd')}`;
-  out += ` send-logs-to-server "${g('sgw-log1')}"`;
-  out += ` send-logs-to-backup-server.1 "${g('sgw-log2')}"`;
-  out += ` send-logs-to-backup-server.2 "${g('sgw-log3')}"`;
-  out += ` fetch-policy "${g('sgw-policy')}"`;
-  out += ` advanced-settings.connection-persistence "${g('sgw-persist')}"`;
-  document.querySelectorAll('#sgw-iface-entries .entry-block').forEach((e, i) => {
-    const n = i + 1;
-    const topo = e.querySelector('.gwiface-topo').value;
-    out += ` interfaces.${n}.name "${e.querySelector('.gwiface-name').value.trim()}"`;
-    out += ` interfaces.${n}.comments "${e.querySelector('.gwiface-comments').value.trim()}"`;
-    out += ` interfaces.${n}.ipv4-address "${e.querySelector('.gwiface-ip').value.trim()}"`;
-    out += ` interfaces.${n}.ipv4-network-mask "${e.querySelector('.gwiface-mask').value.trim()}"`;
-    out += ` interfaces.${n}.anti-spoofing ${e.querySelector('.gwiface-antispoof').value}`;
-    out += ` interfaces.${n}.topology "${topo}"`;
-    if (topo === 'INTERNAL') out += ` interfaces.${n}.topology-settings.ip-address-behind-this-interface "network defined by the interface ip and net mask"`;
-  });
+  var g = function(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; };
+
+  var out = 'add simple-gateway';
+  out += ' name "'    + g('sgw-name')     + '"';
+  out += ' color '    + g('sgw-color');
+  out += ' ip-address "' + g('sgw-ip')   + '"';
+  out += ' hardware "' + g('sgw-hw')     + '"';
+  out += ' version "' + g('sgw-ver')     + '"';
+  out += ' comments "' + g('sgw-comments') + '"';
+  out += ' firewall '  + g('sgw-fw');
+  out += ' ips '       + g('sgw-ips');
+  out += ' anti-bot '  + g('sgw-ab');
+  out += ' anti-virus ' + g('sgw-av');
+  out += ' vpn '       + g('sgw-vpn');
+  out += ' application-control ' + g('sgw-appc');
+  out += ' url-filtering ' + g('sgw-urlf');
+  out += ' content-awareness ' + g('sgw-ctnt');
+  out += ' threat-emulation ' + g('sgw-te');
+  out += ' identity-awareness ' + g('sgw-ia');
+  out += ' https-inspection.enabled ' + g('sgw-https');
+  out += ' platform-portal-settings.portal-web-settings.main-url "' + g('sgw-portal') + '"';
+  out += ' platform-portal-settings.portal-web-settings.ip-address "' + g('sgw-ip') + '"';
+  out += ' nat-settings.hide-internal-interfaces ' + g('sgw-nat');
+  out += ' logs-settings.forward-logs-to-log-server ' + g('sgw-fwd');
+  out += ' send-logs-to-server "' + g('sgw-log1') + '"';
+  out += ' send-logs-to-backup-server.1 "' + g('sgw-log2') + '"';
+  out += ' send-logs-to-backup-server.2 "' + g('sgw-log3') + '"';
+  out += ' fetch-policy "' + g('sgw-policy') + '"';
+  out += ' advanced-settings.connection-persistence "' + g('sgw-persist') + '"';
+
+  // --- Manual interfaces (added via + Add Interface button) ---
+  var ifaceCount = document.getElementById('sgw-iface-entries').querySelectorAll('.entry-block').length;
+  var idx = 0;
+  for (var i = 1; i <= ifaceCount; i++) {
+    idx++;
+    var topo = g('sgw-iface-topo-' + i);
+    out += ' interfaces.' + idx + '.name "'             + g('sgw-iface-name-' + i)     + '"';
+    out += ' interfaces.' + idx + '.comments "'         + g('sgw-iface-comments-' + i) + '"';
+    out += ' interfaces.' + idx + '.ipv4-address "'     + g('sgw-iface-ip-' + i)       + '"';
+    out += ' interfaces.' + idx + '.ipv4-network-mask "' + g('sgw-iface-mask-' + i)   + '"';
+    out += ' interfaces.' + idx + '.anti-spoofing '     + g('sgw-iface-spoof-' + i);
+    out += ' interfaces.' + idx + '.topology "'         + topo + '"';
+    if (topo === 'INTERNAL') out += ' interfaces.' + idx + '.topology-settings.ip-address-behind-this-interface "network defined by the interface ip and net mask"';
+  }
+
+  // --- Bulk pasted interfaces (from textarea) ---
+  var bulk = document.getElementById('sgw-bulk-text');
+  if (bulk && bulk.value.trim()) {
+    var lines = bulk.value.trim().split('\n');
+    for (var li = 0; li < lines.length; li++) {
+      var line = lines[li].trim();
+      if (!line) continue;
+      var cols = line.indexOf('\t') >= 0 ? line.split('\t') : line.split(',');
+      var name     = (cols[0] || '').trim();
+      var ip       = (cols[1] || '').trim();
+      var mask     = (cols[2] || '').trim();
+      var spoof    = (cols[3] || 'true').trim().toLowerCase() === 'false' ? 'false' : 'true';
+      var topoRaw  = (cols[4] || '').trim().toUpperCase();
+      var comments = (cols[5] || '').trim();
+      var topo2    = topoRaw.indexOf('EXT') >= 0 ? 'EXTERNAL' : 'INTERNAL';
+      if (!name) continue;
+      idx++;
+      out += ' interfaces.' + idx + '.name "'             + name     + '"';
+      out += ' interfaces.' + idx + '.comments "'         + comments + '"';
+      out += ' interfaces.' + idx + '.ipv4-address "'     + ip       + '"';
+      out += ' interfaces.' + idx + '.ipv4-network-mask "' + mask    + '"';
+      out += ' interfaces.' + idx + '.anti-spoofing '     + spoof;
+      out += ' interfaces.' + idx + '.topology "'         + topo2    + '"';
+      if (topo2 === 'INTERNAL') out += ' interfaces.' + idx + '.topology-settings.ip-address-behind-this-interface "network defined by the interface ip and net mask"';
+    }
+  }
+
   setOutput('sgw-output', out);
 }
+
 
 // ══════════════════════════════════════════════
 // CLUSTER GATEWAY — separate counters from SGW

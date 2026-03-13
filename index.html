@@ -563,7 +563,8 @@
           <div class="field"><label>Color</label><select id="sgw-color"></select></div>
           <div class="field"><label>Gateway IP</label><input type="text" id="sgw-ip" placeholder="10.0.0.1" oninput="updatePortal('sgw-ip','sgw-portal')"></div>
           <div class="field"><label>Hardware</label><select id="sgw-hw">
-            <option>3000 Appliances</option>
+            <option>3900 Appliances</option>
+			<option>3000 Appliances</option>
             <option>5000 Appliances</option>
             <option>6000 Appliances</option>
             <option>7000 Appliances</option>
@@ -594,9 +595,7 @@
           <div class="field"><label>Anti-Virus</label><select id="sgw-av"><option value="true">TRUE</option><option value="false">FALSE</option></select></div>
           <div class="field"><label>Threat Emulation</label><select id="sgw-te"><option value="false">FALSE</option><option value="true">TRUE</option></select></div>
           <div class="field"><label>Identity Awareness</label><select id="sgw-ia"><option value="false">FALSE</option><option value="true">TRUE</option></select></div>
-          <div class="field"><label>HTTPS Inspection</label><select id="sgw-https"><option value="false">FALSE</option><option value="true">TRUE</option></select></div>
           <div class="field"><label>NAT Hide Internal</label><select id="sgw-nat"><option value="true">TRUE</option><option value="false">FALSE</option></select></div>
-          <div class="field"><label>Forward Logs to Log Server</label><select id="sgw-fwd"><option value="true">TRUE</option><option value="false">FALSE</option></select></div>
         </div>
       </div>
       <div class="card">
@@ -607,33 +606,30 @@
           <div class="field"><label>Backup Server 1</label><input type="text" id="sgw-log2" placeholder="Backup Server 1 Name"></div>
           <div class="field"><label>Backup Server 2</label><input type="text" id="sgw-log3" placeholder="Backup Server 2 Name"></div>
           <div class="field"><label>Fetch Policy</label><input type="text" id="sgw-policy" placeholder="Policy Server Name"></div>
-          <div class="field"><label>Connection Persistence</label><select id="sgw-persist"><option value="keep-data-connections">keep-data-connections</option><option value="keep-all-connections">keep-all-connections</option><option value="new-ip-only">new-ip-only</option><option value="none">none</option></select></div>
+          <div class="field"><label>Connection Persistence</label><select id="sgw-persist"><option value="keep-all-connections">keep-all-connections</option><option value="keep-data-connections">keep-data-connections</option><option value="rematch-connections">rematch-connections</option></select></div>
         </div>
       </div>
       <div class="card">
         <div class="card-title">Interfaces <span class="card-count" id="sgw-iface-count">0</span></div>
 
-        <!-- CSV IMPORT PANEL -->
-        <div id="sgw-import-panel" style="display:none;margin-bottom:14px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:14px;">
-          <div style="font-size:11px;color:var(--text-dim);margin-bottom:8px;">
-            Paste Excel rows below. Expected order: <code style="color:var(--accent);">Name · IP · Mask · Anti-Spoofing · Topology · Comments</code>
-          </div>
-          <textarea id="sgw-csv-input" rows="8" placeholder="Paste here..." style="width:100%;background:var(--output-bg);border:1px solid var(--border);color:var(--text);padding:10px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:12px;resize:vertical;outline:none;"></textarea>
-          <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
-            <button class="btn btn-success btn-sm" onclick="importSGWInterfaces()">↳ Import</button>
-            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('sgw-import-panel').style.display='none'">✕ Close</button>
-            <span id="sgw-import-msg" style="font-size:11px;color:var(--accent2);"></span>
-          </div>
-        </div>
-
         <div id="sgw-iface-entries"></div>
         <div class="btn-row">
           <button class="btn btn-primary btn-sm" onclick="addGWIface('sgw')">+ Add Interface</button>
-          <button class="btn btn-warn btn-sm" onclick="document.getElementById('sgw-import-panel').style.display=document.getElementById('sgw-import-panel').style.display==='none'?'block':'none'">⇩ Paste from Excel</button>
+          <button class="btn btn-warn btn-sm" onclick="sgwToggleBulk()">⇩ Paste from Excel</button>
         </div>
-      </div>
+
+        <!-- BULK PASTE - simple textarea, parsed at generate time -->
+        <div id="sgw-bulk-panel" style="display:none;margin-top:12px;background:var(--surface2);border:1px solid var(--border2);border-radius:4px;padding:12px;">
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:8px;">
+            Paste rows directly from Excel. Column order: <code style="color:var(--accent);">Name, IP, Mask, Anti-Spoofing, Topology, Comments</code><br>
+            <span style="color:var(--warn);font-size:10px;">Tab or comma separated. These will be included in the generated command.</span>
+          </div>
+          <textarea id="sgw-bulk-text" rows="10" placeholder="eth5&#9;185.88.56.126&#9;255.255.255.248&#9;TRUE&#9;External&#9;ISP1" style="width:100%;background:var(--output-bg);border:1px solid var(--accent2);color:var(--text);padding:10px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:12px;resize:vertical;outline:none;line-height:1.7;"></textarea>
+          <div style="font-size:10px;color:var(--accent2);margin-top:6px;" id="sgw-bulk-count">Paste data above — it will be included automatically when you click Generate.</div>
+        </div>
+
       <div class="btn-row">
-        <button class="btn btn-success" onclick="generateSGWOutput()">▶ Generate Command (<span id="sgw-gen-count">0</span> interfaces)</button>
+        <button class="btn btn-success" onclick="generateSGWOutput()">▶ Generate Command</button>
         <button class="btn btn-primary" onclick="downloadOutput('sgw-output','simple_gateway.txt')">↓ Download</button>
         <button class="btn btn-ghost" onclick="copyOutput('sgw-output')">⎘ Copy</button>
       </div>
@@ -642,13 +638,14 @@
         <div class="output-body" id="sgw-output"></div>
       </div>
     </div>
+    </div>
 
     <!-- CLUSTER GATEWAY -->
     <div id="page-cluster_gateway" class="page">
       <div class="page-header">
         <div class="page-header-left">
           <div class="page-title">Cluster Gateway Configuration</div>
-          <div class="page-desc">Generate <code>add simple-cluster</code> with ClusterXL HA and two members.</div>
+          <div class="page-desc">Generate <code>add simple-cluster</code> with ClusterXL modes, members, and interfaces.</div>
         </div>
       </div>
       <div class="card">
@@ -658,7 +655,8 @@
           <div class="field"><label>Color</label><select id="cgw-color"></select></div>
           <div class="field"><label>Cluster VIP</label><input type="text" id="cgw-ip" placeholder="10.0.0.1" oninput="updatePortal('cgw-ip','cgw-portal')"></div>
           <div class="field"><label>Hardware</label><select id="cgw-hw">
-            <option>3000 Appliances</option>
+			<option>3900 Appliances</option>
+			<option>3000 Appliances</option>
             <option>5000 Appliances</option>
             <option>6000 Appliances</option>
             <option>7000 Appliances</option>
@@ -689,12 +687,11 @@
         <div class="card-title">Cluster Mode & Blades</div>
         <div class="form-grid form-grid-2">
           <div class="field"><label>Cluster Mode</label><select id="cgw-mode">
-            <option value="ClusterXL High Availability">ClusterXL High Availability</option>
-            <option value="ClusterXL Load Sharing Multicast">ClusterXL Load Sharing Multicast</option>
-            <option value="ClusterXL Load Sharing Unicast">ClusterXL Load Sharing Unicast</option>
-            <option value="ElasticXL">ElasticXL (R82+)</option>
+            <option value="cluster-xl-ha">ClusterXL High Availability</option>
+            <option value="cluster-xl-ls-multicast">ClusterXL Load Sharing Multicast</option>
+            <option value="cluster-xl-ls-unicast">ClusterXL Load Sharing Unicast</option>
           </select></div>
-          <div class="field"><label>Connection Persistence</label><select id="cgw-persist"><option value="keep-data-connections">keep-data-connections</option><option value="keep-all-connections">keep-all-connections</option><option value="new-ip-only">new-ip-only</option><option value="none">none</option></select></div>
+          <div class="field"><label>Connection Persistence</label><select id="cgw-persist"><option value="keep-all-connections">keep-all-connections</option><option value="keep-data-connections">keep-data-connections</option><option value="rematch-connections">rematch-connections</option></select></div>
           <div class="field"><label>Firewall</label><select id="cgw-fw"><option value="true">TRUE</option><option value="false">FALSE</option></select></div>
           <div class="field"><label>VPN</label><select id="cgw-vpn"><option value="false">FALSE</option><option value="true">TRUE</option></select></div>
           <div class="field"><label>IPS</label><select id="cgw-ips"><option value="true">TRUE</option><option value="false">FALSE</option></select></div>
@@ -705,7 +702,6 @@
           <div class="field"><label>Anti-Virus</label><select id="cgw-av"><option value="true">TRUE</option><option value="false">FALSE</option></select></div>
           <div class="field"><label>Threat Emulation</label><select id="cgw-te"><option value="false">FALSE</option><option value="true">TRUE</option></select></div>
           <div class="field"><label>Identity Awareness</label><select id="cgw-ia"><option value="false">FALSE</option><option value="true">TRUE</option></select></div>
-          <div class="field"><label>HTTPS Inspection</label><select id="cgw-https"><option value="false">FALSE</option><option value="true">TRUE</option></select></div>
           <div class="field"><label>NAT Hide Internal</label><select id="cgw-nat"><option value="true">TRUE</option><option value="false">FALSE</option></select></div>
         </div>
       </div>
@@ -722,17 +718,38 @@
       <div class="card">
         <div class="card-title">Cluster Interfaces <span class="card-count" id="cgw-ci-count">0</span></div>
         <div id="cgw-cluster-ifaces"></div>
-        <div class="btn-row"><button class="btn btn-primary btn-sm" onclick="addClusterIface()">+ Add Cluster Interface</button></div>
+        <div class="btn-row">
+          <button class="btn btn-primary btn-sm" onclick="addClusterIface()">+ Add Cluster Interface</button>
+          <button class="btn btn-warn btn-sm" onclick="cgwToggle('cgw-ci-bulk')">⇩ Paste from Excel</button>
+        </div>
+        <div id="cgw-ci-bulk" style="display:none;margin-top:10px;background:var(--surface2);border:1px solid var(--border2);border-radius:4px;padding:12px;">
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;">Column order: <code style="color:var(--accent);">Name · IP · Mask · Anti-Spoofing · Topology · Comments · Interface-Type</code></div>
+          <textarea id="cgw-ci-bulk-text" rows="6" placeholder="Paste cluster interface rows here..." style="width:100%;background:var(--output-bg);border:1px solid var(--accent2);color:var(--text);padding:10px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:12px;resize:vertical;outline:none;"></textarea>
+        </div>
       </div>
-      <div class="card">
+      <div class="card" id="cgw-m1-card">
         <div class="card-title">Member 1 Interfaces <span class="card-count" id="cgw-m1-count">0</span></div>
         <div id="cgw-m1-ifaces"></div>
-        <div class="btn-row"><button class="btn btn-primary btn-sm" onclick="addMemberIface('cgw-m1-ifaces','cgw-m1-count','Member 1')">+ Add Interface</button></div>
+        <div class="btn-row">
+          <button class="btn btn-primary btn-sm" onclick="addMemberIface('cgw-m1-ifaces','cgw-m1-count','Member 1')">+ Add Interface</button>
+          <button class="btn btn-warn btn-sm" onclick="cgwToggle('cgw-m1-bulk')">⇩ Paste from Excel</button>
+        </div>
+        <div id="cgw-m1-bulk" style="display:none;margin-top:10px;background:var(--surface2);border:1px solid var(--border2);border-radius:4px;padding:12px;">
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;">Column order: <code style="color:var(--accent);">Name · IP · Mask</code></div>
+          <textarea id="cgw-m1-bulk-text" rows="6" placeholder="Paste Member 1 interface rows here..." style="width:100%;background:var(--output-bg);border:1px solid var(--accent2);color:var(--text);padding:10px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:12px;resize:vertical;outline:none;"></textarea>
+        </div>
       </div>
-      <div class="card">
+      <div class="card" id="cgw-m2-card">
         <div class="card-title">Member 2 Interfaces <span class="card-count" id="cgw-m2-count">0</span></div>
         <div id="cgw-m2-ifaces"></div>
-        <div class="btn-row"><button class="btn btn-primary btn-sm" onclick="addMemberIface('cgw-m2-ifaces','cgw-m2-count','Member 2')">+ Add Interface</button></div>
+        <div class="btn-row">
+          <button class="btn btn-primary btn-sm" onclick="addMemberIface('cgw-m2-ifaces','cgw-m2-count','Member 2')">+ Add Interface</button>
+          <button class="btn btn-warn btn-sm" onclick="cgwToggle('cgw-m2-bulk')">⇩ Paste from Excel</button>
+        </div>
+        <div id="cgw-m2-bulk" style="display:none;margin-top:10px;background:var(--surface2);border:1px solid var(--border2);border-radius:4px;padding:12px;">
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;">Column order: <code style="color:var(--accent);">Name · IP · Mask</code></div>
+          <textarea id="cgw-m2-bulk-text" rows="6" placeholder="Paste Member 2 interface rows here..." style="width:100%;background:var(--output-bg);border:1px solid var(--accent2);color:var(--text);padding:10px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:12px;resize:vertical;outline:none;"></textarea>
+        </div>
       </div>
       <div class="btn-row">
         <button class="btn btn-success" onclick="generateCGWOutput()">▶ Generate Command</button>
@@ -1824,7 +1841,8 @@ function removeSGWIface(btn) {
 
 function importSGWInterfaces() {
   var raw = document.getElementById('sgw-csv-input').value.trim();
-  if (!raw) { toast('Paste data first', 'error'); return; }
+  if (!raw) { alert('No data found in textarea!'); return; }
+  alert('Import starting... ' + raw.split('\n').length + ' lines detected');
 
   var container = document.getElementById('sgw-iface-entries');
   var existing  = container.querySelectorAll('.entry-block').length;
@@ -1892,53 +1910,88 @@ function importSGWInterfaces() {
 }
 
 
-function generateSGWOutput() {
-  const g = function(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; };
-  const ifaceCount = document.getElementById('sgw-iface-entries').querySelectorAll('.entry-block').length;
+function sgwToggleBulk() {
+  var p = document.getElementById('sgw-bulk-panel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
 
-  // Remove debug alert if present
+function generateSGWOutput() {
+  var g = function(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; };
+
   var out = 'add simple-gateway';
-  out += ' name "' + g('sgw-name') + '"';
-  out += ' color ' + g('sgw-color');
-  out += ' ip-address "' + g('sgw-ip') + '"';
-  out += ' hardware "' + g('sgw-hw') + '"';
-  out += ' version "' + g('sgw-ver') + '"';
+  out += ' name "'    + g('sgw-name')     + '"';
+  out += ' color '    + g('sgw-color');
+  out += ' ip-address "' + g('sgw-ip')   + '"';
+  out += ' hardware "' + g('sgw-hw')     + '"';
+  out += ' version "' + g('sgw-ver')     + '"';
   out += ' comments "' + g('sgw-comments') + '"';
-  out += ' firewall ' + g('sgw-fw');
-  out += ' ips ' + g('sgw-ips');
-  out += ' anti-bot ' + g('sgw-ab');
+  out += ' firewall '  + g('sgw-fw');
+  out += ' ips '       + g('sgw-ips');
+  out += ' anti-bot '  + g('sgw-ab');
   out += ' anti-virus ' + g('sgw-av');
-  out += ' vpn ' + g('sgw-vpn');
+  out += ' vpn '       + g('sgw-vpn');
   out += ' application-control ' + g('sgw-appc');
   out += ' url-filtering ' + g('sgw-urlf');
   out += ' content-awareness ' + g('sgw-ctnt');
   out += ' threat-emulation ' + g('sgw-te');
   out += ' identity-awareness ' + g('sgw-ia');
-  out += ' https-inspection.enabled ' + g('sgw-https');
   out += ' platform-portal-settings.portal-web-settings.main-url "' + g('sgw-portal') + '"';
   out += ' platform-portal-settings.portal-web-settings.ip-address "' + g('sgw-ip') + '"';
-  out += ' nat-settings.hide-internal-interfaces ' + g('sgw-nat');
-  out += ' logs-settings.forward-logs-to-log-server ' + g('sgw-fwd');
-  out += ' send-logs-to-server "' + g('sgw-log1') + '"';
-  out += ' send-logs-to-backup-server.1 "' + g('sgw-log2') + '"';
-  out += ' send-logs-to-backup-server.2 "' + g('sgw-log3') + '"';
-  out += ' fetch-policy "' + g('sgw-policy') + '"';
+  out += ' nat-hide-internal-interfaces ' + g('sgw-nat');
+  if (g('sgw-log1')) {
+    out += ' logs-settings.forward-logs-to-log-server true';
+    out += ' logs-settings.forward-logs-to-log-server-name "' + g('sgw-log1') + '"';
+    out += ' send-logs-to-server.1 "'         + g('sgw-log1') + '"';
+    if (g('sgw-log2')) out += ' send-logs-to-backup-server.1 "' + g('sgw-log2') + '"';
+    if (g('sgw-log3')) out += ' send-logs-to-backup-server.2 "' + g('sgw-log3') + '"';
+    if (g('sgw-policy')) out += ' fetch-policy "'               + g('sgw-policy') + '"';
+  }
   out += ' advanced-settings.connection-persistence "' + g('sgw-persist') + '"';
 
-  // Loop by index using numbered IDs — same as original working file
+
+  // --- Manual interfaces (added via + Add Interface button) ---
+  var ifaceCount = document.getElementById('sgw-iface-entries').querySelectorAll('.entry-block').length;
+  var idx = 0;
   for (var i = 1; i <= ifaceCount; i++) {
+    idx++;
     var topo = g('sgw-iface-topo-' + i);
-    out += ' interfaces.' + i + '.name "' + g('sgw-iface-name-' + i) + '"';
-    out += ' interfaces.' + i + '.comments "' + g('sgw-iface-comments-' + i) + '"';
-    out += ' interfaces.' + i + '.ipv4-address "' + g('sgw-iface-ip-' + i) + '"';
-    out += ' interfaces.' + i + '.ipv4-network-mask "' + g('sgw-iface-mask-' + i) + '"';
-    out += ' interfaces.' + i + '.anti-spoofing ' + g('sgw-iface-spoof-' + i);
-    out += ' interfaces.' + i + '.topology "' + topo + '"';
-    if (topo === 'INTERNAL') {
-      out += ' interfaces.' + i + '.topology-settings.ip-address-behind-this-interface "network defined by the interface ip and net mask"';
+    out += ' interfaces.' + idx + '.name "'             + g('sgw-iface-name-' + i)     + '"';
+    out += ' interfaces.' + idx + '.comments "'         + g('sgw-iface-comments-' + i) + '"';
+    out += ' interfaces.' + idx + '.ipv4-address "'     + g('sgw-iface-ip-' + i)       + '"';
+    out += ' interfaces.' + idx + '.ipv4-network-mask "' + g('sgw-iface-mask-' + i)   + '"';
+    out += ' interfaces.' + idx + '.anti-spoofing '     + g('sgw-iface-spoof-' + i);
+    out += ' interfaces.' + idx + '.topology "'         + topo + '"';
+    if (topo === 'INTERNAL') out += ' interfaces.' + idx + '.topology-settings.ip-address-behind-this-interface "network defined by the interface ip and net mask"';
+  }
+
+  // --- Bulk pasted interfaces (from textarea) ---
+  var bulk = document.getElementById('sgw-bulk-text');
+  if (bulk && bulk.value.trim()) {
+    var lines = bulk.value.trim().split('\n');
+    for (var li = 0; li < lines.length; li++) {
+      var line = lines[li].trim();
+      if (!line) continue;
+      var cols = line.indexOf('\t') >= 0 ? line.split('\t') : line.split(',');
+      var name     = (cols[0] || '').trim();
+      var ip       = (cols[1] || '').trim();
+      var mask     = (cols[2] || '').trim();
+      var spoof    = (cols[3] || 'true').trim().toLowerCase() === 'false' ? 'false' : 'true';
+      var topoRaw  = (cols[4] || '').trim().toUpperCase();
+      var comments = (cols[5] || '').trim();
+      var topo2    = topoRaw.indexOf('EXT') >= 0 ? 'EXTERNAL' : 'INTERNAL';
+      if (!name) continue;
+      idx++;
+      out += ' interfaces.' + idx + '.name "'             + name     + '"';
+      out += ' interfaces.' + idx + '.comments "'         + comments + '"';
+      out += ' interfaces.' + idx + '.ipv4-address "'     + ip       + '"';
+      out += ' interfaces.' + idx + '.ipv4-network-mask "' + mask    + '"';
+      out += ' interfaces.' + idx + '.anti-spoofing '     + spoof;
+      out += ' interfaces.' + idx + '.topology "'         + topo2    + '"';
+      if (topo2 === 'INTERNAL') out += ' interfaces.' + idx + '.topology-settings.ip-address-behind-this-interface "network defined by the interface ip and net mask"';
     }
   }
 
+  out += ' monitoring true';
   setOutput('sgw-output', out);
 }
 
@@ -1946,34 +1999,47 @@ function generateSGWOutput() {
 // ══════════════════════════════════════════════
 // CLUSTER GATEWAY — separate counters from SGW
 // ══════════════════════════════════════════════
+
 function addClusterIface() {
-  const containerId = 'cgw-cluster-ifaces';
-  const countId = 'cgw-ci-count';
-  const n = (document.getElementById(containerId)?.querySelectorAll('.entry-block').length || 0) + 1;
-  document.getElementById(containerId).insertAdjacentHTML('beforeend', `
-    <div class="entry-block">
-      <div class="entry-header">
-        <span class="entry-num">Cluster Interface #${n}</span>
-        <button class="entry-remove" onclick="removeEntry(this,'${containerId}','${countId}')" title="Remove">✕</button>
-      </div>
-      <div class="form-grid form-grid-3">
-        <div class="field"><label>Name</label><input type="text" class="cgw-ci-name" placeholder="eth1"></div>
-        <div class="field"><label>Comments</label><input type="text" class="cgw-ci-comments"></div>
-        <div class="field"><label>Interface Type</label>
-          <select class="cgw-ci-type" onchange="toggleCGWIfaceIP(this)">
-            <option value="cluster">cluster</option>
-            <option value="sync">sync</option>
-            <option value="cluster + sync">cluster + sync</option>
-            <option value="private">private</option>
-          </select>
-        </div>
-        <div class="field"><label>Topology</label><select class="cgw-ci-topo"><option value="INTERNAL">INTERNAL</option><option value="EXTERNAL">EXTERNAL</option></select></div>
-        <div class="field cgw-ip-wrap"><label>IP Address</label><input type="text" class="cgw-ci-ip" placeholder="10.0.0.1"></div>
-        <div class="field cgw-mask-wrap"><label>Network Mask</label><input type="text" class="cgw-ci-mask" placeholder="255.255.255.0"></div>
-        <div class="field"><label>Anti-Spoofing</label><select class="cgw-ci-antispoof"><option value="true">TRUE</option><option value="false">FALSE</option></select></div>
-      </div>
-    </div>`);
+  var containerId = 'cgw-cluster-ifaces';
+  var countId = 'cgw-ci-count';
+  var n = (document.getElementById(containerId)?.querySelectorAll('.entry-block').length || 0) + 1;
+  document.getElementById(containerId).insertAdjacentHTML('beforeend',
+    '<div class="entry-block">' +
+    '<div class="entry-header">' +
+    '<span class="entry-num">Cluster Interface #' + n + '</span>' +
+    '<button class="entry-remove" onclick="removeCGWIface(this)" title="Remove">✕</button>' +
+    '</div>' +
+    '<div class="form-grid form-grid-3">' +
+    '<div class="field"><label>Name</label><input type="text" id="cgw-ci-name-' + n + '" placeholder="eth1"></div>' +
+    '<div class="field"><label>Comments</label><input type="text" id="cgw-ci-comments-' + n + '"></div>' +
+    '<div class="field"><label>Interface Type</label>' +
+    '<select id="cgw-ci-type-' + n + '">' +
+    '<option value="cluster">cluster</option>' +
+    '<option value="sync">sync</option>' +
+    '<option value="cluster + sync">cluster + sync</option>' +
+    '<option value="private">private</option>' +
+    '</select></div>' +
+    '<div class="field"><label>Topology</label>' +
+    '<select id="cgw-ci-topo-' + n + '">' +
+    '<option value="INTERNAL">INTERNAL</option>' +
+    '<option value="EXTERNAL">EXTERNAL</option>' +
+    '</select></div>' +
+    '<div class="field"><label>IP Address</label><input type="text" id="cgw-ci-ip-' + n + '" placeholder="10.0.0.1"></div>' +
+    '<div class="field"><label>Network Mask</label><input type="text" id="cgw-ci-mask-' + n + '" placeholder="255.255.255.0"></div>' +
+    '<div class="field"><label>Anti-Spoofing</label>' +
+    '<select id="cgw-ci-spoof-' + n + '">' +
+    '<option value="true">TRUE</option>' +
+    '<option value="false">FALSE</option>' +
+    '</select></div>' +
+    '</div></div>'
+  );
   updateCount(containerId, countId);
+}
+
+function removeCGWIface(btn) {
+  btn.closest('.entry-block').remove();
+  updateCount('cgw-cluster-ifaces', 'cgw-ci-count');
 }
 
 function toggleCGWIfaceIP(sel) {
@@ -1986,89 +2052,170 @@ function toggleCGWIfaceIP(sel) {
 }
 
 function addMemberIface(containerId, countId, label) {
-  const n = (document.getElementById(containerId)?.querySelectorAll('.entry-block').length || 0) + 1;
-  document.getElementById(containerId).insertAdjacentHTML('beforeend', `
-    <div class="entry-block">
-      <div class="entry-header">
-        <span class="entry-num">${label} · Interface #${n}</span>
-        <button class="entry-remove" onclick="removeEntry(this,'${containerId}','${countId}')" title="Remove">✕</button>
-      </div>
-      <div class="form-grid form-grid-3">
-        <div class="field"><label>Interface Name</label><input type="text" class="mi-name" placeholder="eth1"></div>
-        <div class="field"><label>IP Address</label><input type="text" class="mi-ip" placeholder="10.0.0.2"></div>
-        <div class="field"><label>Network Mask</label><input type="text" class="mi-mask" placeholder="255.255.255.0"></div>
-      </div>
-    </div>`);
+  var prefix = containerId === 'cgw-m1-ifaces' ? 'cgw-m1' : 'cgw-m2';
+  var n = (document.getElementById(containerId)?.querySelectorAll('.entry-block').length || 0) + 1;
+  var html =
+    '<div class="entry-block">' +
+    '<div class="entry-header">' +
+    '<span class="entry-num">' + label + ' · Interface #' + n + '</span>' +
+    '<button class="entry-remove" onclick="removeMemberIface(this,\'' + containerId + '\',\'' + countId + '\')" title="Remove">✕</button>' +
+    '</div>' +
+    '<div class="form-grid form-grid-3">' +
+    '<div class="field"><label>Interface Name</label><input type="text" id="' + prefix + '-name-' + n + '" placeholder="eth1"></div>' +
+    '<div class="field"><label>IP Address</label><input type="text" id="' + prefix + '-ip-' + n + '" placeholder="10.0.0.2"></div>' +
+    '<div class="field"><label>Network Mask</label><input type="text" id="' + prefix + '-mask-' + n + '" placeholder="255.255.255.0"></div>' +
+    '</div></div>';
+  document.getElementById(containerId).insertAdjacentHTML('beforeend', html);
   updateCount(containerId, countId);
 }
 
+function removeMemberIface(btn, containerId, countId) {
+  btn.closest('.entry-block').remove();
+  updateCount(containerId, countId);
+}
+
+
+function cgwToggle(id) {
+  var el = document.getElementById(id);
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
 function generateCGWOutput() {
-  const g = id => document.getElementById(id).value.trim();
-  let out = `add simple-cluster`;
-  out += ` name "${g('cgw-name')}"`;
-  out += ` color ${g('cgw-color')}`;
-  out += ` ip-address "${g('cgw-ip')}"`;
-  out += ` hardware "${g('cgw-hw')}"`;
-  out += ` version "${g('cgw-ver')}"`;
-  out += ` comments "${g('cgw-comments')}"`;
-  out += ` firewall ${g('cgw-fw')}`;
-  out += ` ips ${g('cgw-ips')}`;
-  out += ` anti-bot ${g('cgw-ab')}`;
-  out += ` anti-virus ${g('cgw-av')}`;
-  out += ` vpn ${g('cgw-vpn')}`;
-  out += ` application-control ${g('cgw-appc')}`;
-  out += ` url-filtering ${g('cgw-urlf')}`;
-  out += ` content-awareness ${g('cgw-ctnt')}`;
-  out += ` threat-emulation ${g('cgw-te')}`;
-  out += ` identity-awareness ${g('cgw-ia')}`;
-  out += ` https-inspection.enabled ${g('cgw-https')}`;
-  out += ` cluster-mode "${g('cgw-mode')}"`;
-  out += ` platform-portal-settings.portal-web-settings.main-url "${g('cgw-portal')}"`;
-  out += ` nat-settings.hide-internal-interfaces ${g('cgw-nat')}`;
-  out += ` send-logs-to-server "${g('cgw-log1')}"`;
-  out += ` send-logs-to-backup-server.1 "${g('cgw-log2')}"`;
-  out += ` send-logs-to-backup-server.2 "${g('cgw-log3')}"`;
-  out += ` fetch-policy "${g('cgw-policy')}"`;
-  out += ` advanced-settings.connection-persistence "${g('cgw-persist')}"`;
+  var g = function(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; };
 
-  // Member identity must be declared before per-member interface references
-  out += ` members.1.name "${g('cgw-m1name')}" members.1.ip-address "${g('cgw-m1ip')}"`;
-  out += ` members.1.color ${g('cgw-color')}`;
-  out += ` members.2.name "${g('cgw-m2name')}" members.2.ip-address "${g('cgw-m2ip')}"`;
-  out += ` members.2.color ${g('cgw-color')}`;
+  var mode = g('cgw-mode');
+  var out = 'add simple-cluster';
+  out += ' name "'     + g('cgw-name')     + '"';
+  out += ' color '      + g('cgw-color');
+  out += ' ip-address "' + g('cgw-ip')    + '"';
+  out += ' hardware "'  + g('cgw-hw')     + '"';
+  out += ' version "'   + g('cgw-ver')    + '"';
+  out += ' comments "'  + g('cgw-comments') + '"';
+  out += ' firewall '    + g('cgw-fw');
+  out += ' ips '         + g('cgw-ips');
+  out += ' anti-bot '    + g('cgw-ab');
+  out += ' anti-virus '  + g('cgw-av');
+  out += ' vpn '         + g('cgw-vpn');
+  out += ' application-control ' + g('cgw-appc');
+  out += ' url-filtering '       + g('cgw-urlf');
+  out += ' content-awareness '   + g('cgw-ctnt');
+  out += ' threat-emulation '    + g('cgw-te');
+  out += ' identity-awareness '  + g('cgw-ia');
+  out += ' nat-hide-internal-interfaces ' + g('cgw-nat');
+  if (g('cgw-log1')) {
+    out += ' logs-settings.forward-logs-to-log-server true';
+    out += ' logs-settings.forward-logs-to-log-server-name "' + g('cgw-log1') + '"';
+    out += ' send-logs-to-server.1 "'         + g('cgw-log1') + '"';
+    if (g('cgw-log2')) out += ' send-logs-to-backup-server.1 "' + g('cgw-log2') + '"';
+    if (g('cgw-log3')) out += ' send-logs-to-backup-server.2 "' + g('cgw-log3') + '"';
+    if (g('cgw-policy')) out += ' fetch-policy "'               + g('cgw-policy') + '"';
+  }
 
-  document.querySelectorAll('#cgw-cluster-ifaces .entry-block').forEach((e, i) => {
-    const n = i + 1;
-    const type = e.querySelector('.cgw-ci-type').value;
-    const topo = e.querySelector('.cgw-ci-topo').value;
-    out += ` interfaces.${n}.name "${e.querySelector('.cgw-ci-name').value.trim()}"`;
-    out += ` interfaces.${n}.comments "${e.querySelector('.cgw-ci-comments').value.trim()}"`;
-    out += ` interfaces.${n}.interface-type "${type}"`;
+
+  out += ' cluster-mode "' + mode + '"';
+  if (g('cgw-portal')) out += ' platform-portal-settings.portal-web-settings.main-url "' + g('cgw-portal') + '"';
+  out += ' advanced-settings.connection-persistence "' + g('cgw-persist') + '"';
+  out += ' members.1.name "' + g('cgw-m1name') + '" members.1.ip-address "' + g('cgw-m1ip') + '"';
+  out += ' members.1.color ' + g('cgw-color');
+  out += ' members.2.name "' + g('cgw-m2name') + '" members.2.ip-address "' + g('cgw-m2ip') + '"';
+  out += ' members.2.color ' + g('cgw-color');
+
+  // Helper to parse bulk textarea lines
+  function parseBulkLines(textareaId) {
+    var el = document.getElementById(textareaId);
+    if (!el || !el.value.trim()) return [];
+    return el.value.trim().split('\n').map(function(l) { return l.trim(); }).filter(Boolean);
+  }
+  function splitLine(line) {
+    return (line.indexOf('\t') >= 0 ? line.split('\t') : line.split(',')).map(function(c) { return c.trim(); });
+  }
+
+  // --- Cluster Interfaces (manual + bulk) ---
+  var idx = 0;
+  var ciBlocks = document.getElementById('cgw-cluster-ifaces').querySelectorAll('.entry-block');
+  ciBlocks.forEach(function(block) {
+    var gf = function(cls) { var el = block.querySelector(cls); return el ? el.value.trim() : ''; };
+    var name     = gf('[id^="cgw-ci-name-"]');
+    var comments = gf('[id^="cgw-ci-comments-"]');
+    var type     = gf('[id^="cgw-ci-type-"]');
+    var topo     = gf('[id^="cgw-ci-topo-"]');
+    var ip       = gf('[id^="cgw-ci-ip-"]');
+    var mask     = gf('[id^="cgw-ci-mask-"]');
+    var spoof    = gf('[id^="cgw-ci-spoof-"]');
+    idx++;
+    out += ' interfaces.' + idx + '.name "'           + name     + '"';
+    out += ' interfaces.' + idx + '.comments "'       + comments + '"';
+    out += ' interfaces.' + idx + '.interface-type "' + type     + '"';
     if (type !== 'sync') {
-      out += ` interfaces.${n}.ip-address "${e.querySelector('.cgw-ci-ip').value.trim()}"`;
-      out += ` interfaces.${n}.network-mask "${e.querySelector('.cgw-ci-mask').value.trim()}"`;
+      out += ' interfaces.' + idx + '.ip-address "'   + ip       + '"';
+      out += ' interfaces.' + idx + '.network-mask "' + mask     + '"';
     }
-    out += ` interfaces.${n}.anti-spoofing ${e.querySelector('.cgw-ci-antispoof').value}`;
-    out += ` interfaces.${n}.topology "${topo}"`;
-    if (topo === 'INTERNAL') out += ` interfaces.${n}.topology-settings.ip-address-behind-this-interface "network defined by the interface ip and net mask"`;
+    out += ' interfaces.' + idx + '.anti-spoofing '   + spoof;
+    out += ' interfaces.' + idx + '.topology "'       + topo     + '"';
+    if (topo === 'INTERNAL') out += ' interfaces.' + idx + '.topology-settings.ip-address-behind-this-interface "network defined by the interface ip and net mask"';
+  });
+  parseBulkLines('cgw-ci-bulk-text').forEach(function(line) {
+    var c = splitLine(line);
+    var name=c[0],ip=c[1]||'',mask=c[2]||'',spoof=(c[3]||'true').toLowerCase()==='false'?'false':'true';
+    var topo=((c[4]||'').toUpperCase().indexOf('EXT')>=0)?'EXTERNAL':'INTERNAL';
+    var comments=c[5]||'',type=c[6]||'cluster';
+    if (!name) return;
+    idx++;
+    out += ' interfaces.' + idx + '.name "'           + name     + '"';
+    out += ' interfaces.' + idx + '.comments "'       + comments + '"';
+    out += ' interfaces.' + idx + '.interface-type "' + type     + '"';
+    out += ' interfaces.' + idx + '.ip-address "'     + ip       + '"';
+    out += ' interfaces.' + idx + '.network-mask "'   + mask     + '"';
+    out += ' interfaces.' + idx + '.anti-spoofing '   + spoof;
+    out += ' interfaces.' + idx + '.topology "'       + topo     + '"';
+    if (topo === 'INTERNAL') out += ' interfaces.' + idx + '.topology-settings.ip-address-behind-this-interface "network defined by the interface ip and net mask"';
   });
 
-  document.querySelectorAll('#cgw-m1-ifaces .entry-block').forEach((e, i) => {
-    const n = i + 1;
-    out += ` members.1.interfaces.${n}.name "${e.querySelector('.mi-name').value.trim()}"`;
-    out += ` members.1.interfaces.${n}.ip-address "${e.querySelector('.mi-ip').value.trim()}"`;
-    out += ` members.1.interfaces.${n}.network-mask "${e.querySelector('.mi-mask').value.trim()}"`;
-  });
+  // --- Member 1 & 2 Interfaces ---
+  {
+    var m1idx = 0;
+    var m1Blocks = document.getElementById('cgw-m1-ifaces').querySelectorAll('.entry-block');
+    m1Blocks.forEach(function(block) {
+      var name = (block.querySelector('[id^="cgw-m1-name-"]') || {}).value || '';
+      var ip   = (block.querySelector('[id^="cgw-m1-ip-"]')   || {}).value || '';
+      var mask = (block.querySelector('[id^="cgw-m1-mask-"]') || {}).value || '';
+      m1idx++;
+      out += ' members.1.interfaces.' + m1idx + '.name "'         + name.trim() + '"';
+      out += ' members.1.interfaces.' + m1idx + '.ip-address "'   + ip.trim()   + '"';
+      out += ' members.1.interfaces.' + m1idx + '.network-mask "' + mask.trim() + '"';
+    });
+    parseBulkLines('cgw-m1-bulk-text').forEach(function(line) {
+      var c = splitLine(line); if (!c[0]) return;
+      m1idx++;
+      out += ' members.1.interfaces.' + m1idx + '.name "'         + c[0] + '"';
+      out += ' members.1.interfaces.' + m1idx + '.ip-address "'   + (c[1]||'') + '"';
+      out += ' members.1.interfaces.' + m1idx + '.network-mask "' + (c[2]||'') + '"';
+    });
 
-  document.querySelectorAll('#cgw-m2-ifaces .entry-block').forEach((e, i) => {
-    const n = i + 1;
-    out += ` members.2.interfaces.${n}.name "${e.querySelector('.mi-name').value.trim()}"`;
-    out += ` members.2.interfaces.${n}.ip-address "${e.querySelector('.mi-ip').value.trim()}"`;
-    out += ` members.2.interfaces.${n}.network-mask "${e.querySelector('.mi-mask').value.trim()}"`;
-  });
+    var m2idx = 0;
+    var m2Blocks = document.getElementById('cgw-m2-ifaces').querySelectorAll('.entry-block');
+    m2Blocks.forEach(function(block) {
+      var name = (block.querySelector('[id^="cgw-m2-name-"]') || {}).value || '';
+      var ip   = (block.querySelector('[id^="cgw-m2-ip-"]')   || {}).value || '';
+      var mask = (block.querySelector('[id^="cgw-m2-mask-"]') || {}).value || '';
+      m2idx++;
+      out += ' members.2.interfaces.' + m2idx + '.name "'         + name.trim() + '"';
+      out += ' members.2.interfaces.' + m2idx + '.ip-address "'   + ip.trim()   + '"';
+      out += ' members.2.interfaces.' + m2idx + '.network-mask "' + mask.trim() + '"';
+    });
+    parseBulkLines('cgw-m2-bulk-text').forEach(function(line) {
+      var c = splitLine(line); if (!c[0]) return;
+      m2idx++;
+      out += ' members.2.interfaces.' + m2idx + '.name "'         + c[0] + '"';
+      out += ' members.2.interfaces.' + m2idx + '.ip-address "'   + (c[1]||'') + '"';
+      out += ' members.2.interfaces.' + m2idx + '.network-mask "' + (c[2]||'') + '"';
+    });
+  }
 
+  out += ' monitoring true';
   setOutput('cgw-output', out);
 }
+
 
 // ══════════════════════════════════════════════
 // AUTOCONFIG

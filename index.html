@@ -1956,7 +1956,7 @@ function generateSGWOutput() {
     idx++;
     var topo = g('sgw-iface-topo-' + i);
     out += ' interfaces.' + idx + '.name "'             + g('sgw-iface-name-' + i)     + '"';
-    out += ' interfaces.' + idx + '.comments "'         + g('sgw-iface-comments-' + i) + '"';
+    if (g('sgw-iface-comments-' + i)) out += ' interfaces.' + idx + '.comments "' + g('sgw-iface-comments-' + i) + '"';
     out += ' interfaces.' + idx + '.ipv4-address "'     + g('sgw-iface-ip-' + i)       + '"';
     out += ' interfaces.' + idx + '.ipv4-network-mask "' + g('sgw-iface-mask-' + i)   + '"';
     out += ' interfaces.' + idx + '.anti-spoofing '     + g('sgw-iface-spoof-' + i);
@@ -1982,7 +1982,7 @@ function generateSGWOutput() {
       if (!name) continue;
       idx++;
       out += ' interfaces.' + idx + '.name "'             + name     + '"';
-      out += ' interfaces.' + idx + '.comments "'         + comments + '"';
+      if (comments) out += ' interfaces.' + idx + '.comments "' + comments + '"';
       out += ' interfaces.' + idx + '.ipv4-address "'     + ip       + '"';
       out += ' interfaces.' + idx + '.ipv4-network-mask "' + mask    + '"';
       out += ' interfaces.' + idx + '.anti-spoofing '     + spoof;
@@ -2144,7 +2144,7 @@ function generateCGWOutput() {
     var spoof    = gf('[id^="cgw-ci-spoof-"]');
     idx++;
     out += ' interfaces.' + idx + '.name "'           + name     + '"';
-    out += ' interfaces.' + idx + '.comments "'       + comments + '"';
+    if (comments) out += ' interfaces.' + idx + '.comments "' + comments + '"';
     out += ' interfaces.' + idx + '.interface-type "' + type     + '"';
     if (type !== 'sync') {
       out += ' interfaces.' + idx + '.ip-address "'   + ip       + '"';
@@ -2162,7 +2162,7 @@ function generateCGWOutput() {
     if (!name) return;
     idx++;
     out += ' interfaces.' + idx + '.name "'           + name     + '"';
-    out += ' interfaces.' + idx + '.comments "'       + comments + '"';
+    if (comments) out += ' interfaces.' + idx + '.comments "' + comments + '"';
     out += ' interfaces.' + idx + '.interface-type "' + type     + '"';
     out += ' interfaces.' + idx + '.ip-address "'     + ip       + '"';
     out += ' interfaces.' + idx + '.network-mask "'   + mask     + '"';

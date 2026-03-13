@@ -283,6 +283,9 @@
       <div class="nav-label">Checkpoint · Gaia</div>
       <div class="nav-item" onclick="navigate('gaia_interface')"><span class="nav-dot"></span>Gaia Interface</div>
       <div class="nav-item" onclick="navigate('gaia_embedded_interface')"><span class="nav-dot"></span>Embedded Interface</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Checkpoint · Gateway</div>
       <div class="nav-item" onclick="navigate('simple_gateway')"><span class="nav-dot"></span>Single Gateway</div>
       <div class="nav-item" onclick="navigate('cluster_gateway')"><span class="nav-dot"></span>Cluster Gateway</div>
     </div>
@@ -2044,7 +2047,7 @@ function removeCGWIface(btn) {
 
 function toggleCGWIfaceIP(sel) {
   const block = sel.closest('.entry-block');
-  const isSync = sel.value === 'sync';
+  const isSync = sel.value === 'sync' || sel.value === 'cluster + sync';
   block.querySelector('.cgw-ci-ip').disabled = isSync;
   block.querySelector('.cgw-ci-mask').disabled = isSync;
   block.querySelector('.cgw-ip-wrap').style.opacity = isSync ? '0.4' : '1';
@@ -2146,29 +2149,40 @@ function generateCGWOutput() {
     out += ' interfaces.' + idx + '.name "'           + name     + '"';
     if (comments) out += ' interfaces.' + idx + '.comments "' + comments + '"';
     out += ' interfaces.' + idx + '.interface-type "' + type     + '"';
-    if (type !== 'sync') {
+    if (type !== 'sync' && type !== 'cluster + sync') {
       out += ' interfaces.' + idx + '.ip-address "'   + ip       + '"';
       out += ' interfaces.' + idx + '.network-mask "' + mask     + '"';
     }
-    out += ' interfaces.' + idx + '.anti-spoofing '   + spoof;
-    out += ' interfaces.' + idx + '.topology "'       + topo     + '"';
-    if (topo === 'INTERNAL') out += ' interfaces.' + idx + '.topology-settings.ip-address-behind-this-interface "network defined by the interface ip and net mask"';
+    out += ' interfaces.' + idx + '.anti-spoofing '   + (type === 'sync' || type === 'cluster + sync' ? 'true' : spoof);
+    if (type !== 'sync' && type !== 'cluster + sync') {
+      out += ' interfaces.' + idx + '.topology "'       + topo + '"';
+      if (topo === 'INTERNAL') out += ' interfaces.' + idx + '.topology-settings.ip-address-behind-this-interface "network defined by the interface ip and net mask"';
+    } else {
+      out += ' interfaces.' + idx + '.topology "INTERNAL"';
+      out += ' interfaces.' + idx + '.topology-settings.ip-address-behind-this-interface "network defined by the interface ip and net mask"';
+    }
   });
   parseBulkLines('cgw-ci-bulk-text').forEach(function(line) {
     var c = splitLine(line);
     var name=c[0],ip=c[1]||'',mask=c[2]||'',spoof=(c[3]||'true').toLowerCase()==='false'?'false':'true';
     var topo=((c[4]||'').toUpperCase().indexOf('EXT')>=0)?'EXTERNAL':'INTERNAL';
-    var comments=c[5]||'',type=c[6]||'cluster';
+    var comments=c[5]||'',type=(c[6]||'cluster').trim().toLowerCase();
+    var isSync = (type === 'sync' || type === 'cluster + sync');
     if (!name) return;
     idx++;
-    out += ' interfaces.' + idx + '.name "'           + name     + '"';
+    out += ' interfaces.' + idx + '.name "'           + name + '"';
     if (comments) out += ' interfaces.' + idx + '.comments "' + comments + '"';
-    out += ' interfaces.' + idx + '.interface-type "' + type     + '"';
-    out += ' interfaces.' + idx + '.ip-address "'     + ip       + '"';
-    out += ' interfaces.' + idx + '.network-mask "'   + mask     + '"';
-    out += ' interfaces.' + idx + '.anti-spoofing '   + spoof;
-    out += ' interfaces.' + idx + '.topology "'       + topo     + '"';
-    if (topo === 'INTERNAL') out += ' interfaces.' + idx + '.topology-settings.ip-address-behind-this-interface "network defined by the interface ip and net mask"';
+    out += ' interfaces.' + idx + '.interface-type "' + type + '"';
+    if (!isSync && ip)   out += ' interfaces.' + idx + '.ip-address "'   + ip   + '"';
+    if (!isSync && mask) out += ' interfaces.' + idx + '.network-mask "' + mask + '"';
+    out += ' interfaces.' + idx + '.anti-spoofing '   + (isSync ? 'true' : spoof);
+    if (!isSync) {
+      out += ' interfaces.' + idx + '.topology "'       + topo + '"';
+      if (topo === 'INTERNAL') out += ' interfaces.' + idx + '.topology-settings.ip-address-behind-this-interface "network defined by the interface ip and net mask"';
+    } else {
+      out += ' interfaces.' + idx + '.topology "INTERNAL"';
+      out += ' interfaces.' + idx + '.topology-settings.ip-address-behind-this-interface "network defined by the interface ip and net mask"';
+    }
   });
 
   // --- Member 1 & 2 Interfaces ---
@@ -2181,15 +2195,15 @@ function generateCGWOutput() {
       var mask = (block.querySelector('[id^="cgw-m1-mask-"]') || {}).value || '';
       m1idx++;
       out += ' members.1.interfaces.' + m1idx + '.name "'         + name.trim() + '"';
-      out += ' members.1.interfaces.' + m1idx + '.ip-address "'   + ip.trim()   + '"';
-      out += ' members.1.interfaces.' + m1idx + '.network-mask "' + mask.trim() + '"';
+      if (ip.trim())   out += ' members.1.interfaces.' + m1idx + '.ip-address "'   + ip.trim()   + '"';
+      if (mask.trim()) out += ' members.1.interfaces.' + m1idx + '.network-mask "' + mask.trim() + '"';
     });
     parseBulkLines('cgw-m1-bulk-text').forEach(function(line) {
       var c = splitLine(line); if (!c[0]) return;
       m1idx++;
       out += ' members.1.interfaces.' + m1idx + '.name "'         + c[0] + '"';
-      out += ' members.1.interfaces.' + m1idx + '.ip-address "'   + (c[1]||'') + '"';
-      out += ' members.1.interfaces.' + m1idx + '.network-mask "' + (c[2]||'') + '"';
+      if (c[1]) out += ' members.1.interfaces.' + m1idx + '.ip-address "'   + c[1] + '"';
+      if (c[2]) out += ' members.1.interfaces.' + m1idx + '.network-mask "' + c[2] + '"';
     });
 
     var m2idx = 0;
@@ -2200,15 +2214,15 @@ function generateCGWOutput() {
       var mask = (block.querySelector('[id^="cgw-m2-mask-"]') || {}).value || '';
       m2idx++;
       out += ' members.2.interfaces.' + m2idx + '.name "'         + name.trim() + '"';
-      out += ' members.2.interfaces.' + m2idx + '.ip-address "'   + ip.trim()   + '"';
-      out += ' members.2.interfaces.' + m2idx + '.network-mask "' + mask.trim() + '"';
+      if (ip.trim())   out += ' members.2.interfaces.' + m2idx + '.ip-address "'   + ip.trim()   + '"';
+      if (mask.trim()) out += ' members.2.interfaces.' + m2idx + '.network-mask "' + mask.trim() + '"';
     });
     parseBulkLines('cgw-m2-bulk-text').forEach(function(line) {
       var c = splitLine(line); if (!c[0]) return;
       m2idx++;
       out += ' members.2.interfaces.' + m2idx + '.name "'         + c[0] + '"';
-      out += ' members.2.interfaces.' + m2idx + '.ip-address "'   + (c[1]||'') + '"';
-      out += ' members.2.interfaces.' + m2idx + '.network-mask "' + (c[2]||'') + '"';
+      if (c[1]) out += ' members.2.interfaces.' + m2idx + '.ip-address "'   + c[1] + '"';
+      if (c[2]) out += ' members.2.interfaces.' + m2idx + '.network-mask "' + c[2] + '"';
     });
   }
 

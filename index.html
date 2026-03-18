@@ -305,7 +305,7 @@
       <div class="nav-item tools" onclick="navigate('subnet_calc')"><span class="nav-dot"></span>Subnet Calculator</div>
       <div class="nav-item tools" onclick="navigate('ip_planner')"><span class="nav-dot"></span>IP / VLAN Planner</div>
       <div class="nav-item tools" onclick="navigate('pass_gen')"><span class="nav-dot"></span>Password Generator</div>
-      <div class="nav-item tools" onclick="navigate('pass_hash')"><span class="nav-dot"></span>OpenSSL Hash</div>
+      <div class="nav-item tools" onclick="navigate('pass_hash')"><span class="nav-dot"></span>Generate Salt Password</div>
       <div class="nav-item tools" onclick="navigate('wildcard')"><span class="nav-dot"></span>Wildcard Converter</div>
       <div class="nav-item tools" onclick="navigate('ip_range')"><span class="nav-dot"></span>IP Range Expander</div>
       <div class="nav-item tools" onclick="navigate('nat_builder')"><span class="nav-dot"></span>NAT Rule Builder</div>
@@ -355,7 +355,7 @@
         <div class="home-tile tools" onclick="navigate('subnet_calc')"><span class="tile-tag tools">Tools</span><div class="tile-name">Subnet Calculator</div><div class="tile-desc">CIDR to subnet mask, usable hosts, network & broadcast address with live output.</div></div>
         <div class="home-tile tools" onclick="navigate('ip_planner')"><span class="tile-tag tools">Tools</span><div class="tile-name">IP / VLAN Planner</div><div class="tile-desc">Enter VLAN count & hosts per VLAN — auto-generates supernet and per-VLAN subnets with live editing.</div></div>
         <div class="home-tile tools" onclick="navigate('pass_gen')"><span class="tile-tag tools">Tools</span><div class="tile-name">Password Generator</div><div class="tile-desc">Generate complex passwords with custom length, character sets, and strength indicator.</div></div>
-        <div class="home-tile tools" onclick="navigate('pass_hash')"><span class="tile-tag tools">Tools</span><div class="tile-name">OpenSSL Hash</div><div class="tile-desc">Generate crypt-format hashes matching <code style="color:var(--accent-tools)">openssl passwd -1/-5/-6</code> with MD5, SHA-256, SHA-512.</div></div>
+        <div class="home-tile tools" onclick="navigate('pass_hash')"><span class="tile-tag tools">Tools</span><div class="tile-name">Generate Salt Password</div><div class="tile-desc">Generate crypt-format hashes matching <code style="color:var(--accent-tools)">openssl passwd -1/-5/-6</code> with MD5, SHA-256, SHA-512.</div></div>
         <div class="home-tile tools" onclick="navigate('wildcard')"><span class="tile-tag tools">Tools</span><div class="tile-name">Wildcard Converter</div><div class="tile-desc">Instantly convert subnet masks ↔ wildcard masks. Essential for ACL and firewall rule building.</div></div>
         <div class="home-tile tools" onclick="navigate('ip_range')"><span class="tile-tag tools">Tools</span><div class="tile-name">IP Range Expander</div><div class="tile-desc">Enter a range like <code style="color:var(--accent-tools)">10.0.0.1–10.0.0.50</code> and get every IP listed, ready for bulk object creation.</div></div>
         <div class="home-tile cp" onclick="navigate('nat_builder')"><span class="tile-tag cp">Checkpoint</span><div class="tile-name">NAT Rule Builder</div><div class="tile-desc">Generate <code style="color:var(--accent)">add nat-rule</code> commands for hide NAT and static NAT policies.</div></div>
@@ -1038,6 +1038,12 @@
           <label style="text-transform:none;letter-spacing:0;font-size:12px;color:var(--text);display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="pg-lower" checked onchange="generatePassword()"> Lowercase (a-z)</label>
           <label style="text-transform:none;letter-spacing:0;font-size:12px;color:var(--text);display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="pg-num" checked onchange="generatePassword()"> Numbers (0-9)</label>
           <label style="text-transform:none;letter-spacing:0;font-size:12px;color:var(--text);display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="pg-sym" checked onchange="generatePassword()"> Symbols (!@#$%^&*)</label>
+        </div>
+        <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+          <div class="field">
+            <label>Also include the following characters <span style="color:var(--text-dim);font-size:9px;text-transform:none;letter-spacing:0;">(added to the pool alongside selected sets above)</span></label>
+            <input type="text" id="pg-extra" placeholder="e.g.  @#!_-  or leave blank" oninput="generatePassword()" style="font-family:'JetBrains Mono',monospace;letter-spacing:0.08em;">
+          </div>
         </div>
       </div>
       <div class="card">
@@ -2903,13 +2909,19 @@ function generatePassword() {
 
   if (noAmbig) { upper = upper.replace(/[O]/g,''); lower = lower.replace(/[l]/g,''); nums = nums.replace(/[01]/g,''); }
 
+  // Extra characters from user input (deduplicated)
+  const extraRaw = (document.getElementById('pg-extra') ? document.getElementById('pg-extra').value : '');
+  const extraChars = [...new Set(extraRaw.split(''))].join('');
+
   let charset = '';
   if (useUpper) charset += upper;
   if (useLower) charset += lower;
   if (useNum)   charset += nums;
   if (useSym)   charset += syms;
+  // Append extra chars not already in charset
+  for (const ch of extraChars) { if (ch && !charset.includes(ch)) charset += ch; }
 
-  if (!charset) { toast('Select at least one character set', 'error'); return; }
+  if (!charset) { toast('Select at least one character set or enter extra characters', 'error'); return; }
 
   _generatedPasswords = [];
 
@@ -3157,77 +3169,109 @@ async function md5crypt(password, salt) {
 }
 
 // ── SHA-crypt (SHA-256 = $5$, SHA-512 = $6$) ──
-async function shacrypt(password, salt, algoName, rounds, variant) {
-  const enc = s => new TextEncoder().encode(s);
-  const digest = async data => new Uint8Array(await crypto.subtle.digest(algoName, data));
-  const concat = (...arrays) => { const len = arrays.reduce((s,a)=>s+a.length,0); const r=new Uint8Array(len); let o=0; arrays.forEach(a=>{r.set(a,o);o+=a.length;}); return r; };
+// Implements https://www.akkadia.org/docs/sha-crypt.html exactly.
+//
+// Three bugs were present in the previous version:
+//   1. Wrong character set — SHA-crypt uses ./0-9A-Za-z (not the MD5-crypt abcde...z order)
+//   2. Wrong byte order in the final base64 — first byte must be the LOW bits, not the high bits
+//   3. Wrong byte-triplet indices and wrong last-group encoding for SHA-256 (2 bytes → 3 chars)
+//
+// The rounds loop and P/S-string derivation were correct.
 
-  const id   = variant === 'SHA-256' ? '5' : '6';
-  const blen = variant === 'SHA-256' ? 32 : 64;
+// SHA-crypt base64 charset: ./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
+const SHA_CRYPT_CHARS = './0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+
+// Byte transpose maps (official spec — reorder digest bytes before base64 encoding)
+const _512_TMAP = [
+  42,21, 0, 1,43,22,23, 2,44,45,24, 3, 4,46,25,26,
+   5,47,48,27, 6, 7,49,28,29, 8,50,51,30, 9,10,52,
+  31,32,11,53,54,33,12,13,55,34,35,14,56,57,36,15,
+  16,58,37,38,17,59,60,39,18,19,61,40,41,20,62,63,
+];
+const _256_TMAP = [
+  20,10, 0,11, 1,21, 2,22,12,23,13, 3,14, 4,24, 5,
+  25,15,26,16, 6,17, 7,27, 8,28,18,29,19, 9,30,31,
+];
+
+async function shacrypt(password, salt, algoName, rounds, variant) {
+  const use512 = variant === 'SHA-512';
+  const id     = use512 ? '6' : '5';
+  const tmap   = use512 ? _512_TMAP : _256_TMAP;
+
+  const enc    = s => new TextEncoder().encode(s);
+  const dg     = async data => new Uint8Array(await crypto.subtle.digest(algoName, data));
+
+  // concat helper
+  const cat = (...arrays) => {
+    const len = arrays.reduce((s,a) => s + a.length, 0);
+    const out = new Uint8Array(len);
+    let off = 0;
+    for (const a of arrays) { out.set(a, off); off += a.length; }
+    return out;
+  };
+
+  // repeat src bytes until we have exactly n bytes
+  const rep = (src, n) => {
+    let out = new Uint8Array(0);
+    let rem = n;
+    while (rem > 0) { out = cat(out, src.slice(0, Math.min(rem, src.length))); rem -= src.length; }
+    return out.slice(0, n);
+  };
 
   const pw = enc(password);
   const sl = enc(salt);
 
-  // Digest B: password + salt + password
-  const B = await digest(concat(pw, sl, pw));
+  // ── Step 1: Digest B = H(pw + salt + pw) ──
+  const B = await dg(cat(pw, sl, pw));
 
-  // Digest A: password + salt + B (repeated, pw.length bytes)
-  let aInput = [...pw, ...sl];
-  let plen = pw.length;
-  while (plen > 0) { aInput.push(...B.slice(0, Math.min(plen, blen))); plen -= blen; }
+  // ── Step 2: Digest A = H(pw + salt + rep(B, pw.length) + bit-loop) ──
+  let aArr = cat(pw, sl, rep(B, pw.length));
   let pp = pw.length;
-  while (pp > 0) { aInput.push(pp & 1 ? 0 : pw[0]); pp >>= 1; }
-  const A = await digest(new Uint8Array(aInput));
+  while (pp > 0) {
+    aArr = cat(aArr, (pp & 1) ? B : pw);
+    pp >>= 1;
+  }
+  const A = await dg(aArr);
 
-  // P string: repeat password to pw.length bytes
-  let pStr = new Uint8Array(0);
-  plen = pw.length;
-  const fullPW = new Uint8Array(blen); fullPW.set(A.slice(0, blen));
-  while (plen > 0) { pStr = concat(pStr, pw.slice(0, Math.min(plen, pw.length))); plen -= pw.length; }
-  pStr = pStr.slice(0, pw.length);
+  // ── Step 3: P-string = rep(H(pw * pw.length), pw.length) ──
+  let pwRep = new Uint8Array(0);
+  for (let i = 0; i < pw.length; i++) pwRep = cat(pwRep, pw);
+  const pStr = rep(await dg(pwRep), pw.length);
 
-  // S string: repeat salt to salt.length bytes
-  let sStr = new Uint8Array(0);
-  let slen = sl.length;
-  while (slen > 0) { sStr = concat(sStr, sl.slice(0, Math.min(slen, sl.length))); slen -= sl.length; }
-  sStr = sStr.slice(0, sl.length);
+  // ── Step 4: S-string = H(salt * (16 + A[0])).slice(0, salt.length) ──
+  let slRep = new Uint8Array(0);
+  const srounds = 16 + A[0];
+  for (let i = 0; i < srounds; i++) slRep = cat(slRep, sl);
+  const sStr = (await dg(slRep)).slice(0, sl.length);
 
-  // rounds
+  // ── Step 5: 5000 rounds ──
   let C = A;
   for (let i = 0; i < rounds; i++) {
-    let d = new Uint8Array(0);
-    if (i & 1) d = concat(d, pStr); else d = concat(d, C);
-    if (i % 3) d = concat(d, sStr);
-    if (i % 7) d = concat(d, pStr);
-    if (i & 1) d = concat(d, C); else d = concat(d, pStr);
-    C = await digest(d);
+    const d = cat(
+      (i & 1) ? pStr : C,
+      (i % 3) ? sStr : new Uint8Array(0),
+      (i % 7) ? pStr : new Uint8Array(0),
+      (i & 1) ? C    : pStr
+    );
+    C = await dg(d);
   }
 
-  // Base64 encode with crypt ordering
-  const to64 = (v, n) => { let r=''; while(n-->0){r+=CRYPT_CHARS[v&0x3f];v>>=6;} return r; };
+  // ── Step 6: Apply transpose map, then base64-encode ──
+  // SHA-crypt base64: first byte → LOW bits, charset = ./0-9A-Za-z
+  const transposed = new Uint8Array(tmap.map(i => C[i]));
+  const to64 = (v, n) => { let r = ''; while (n-- > 0) { r += SHA_CRYPT_CHARS[v & 0x3f]; v >>>= 6; } return r; };
 
   let hash = '';
-  if (variant === 'SHA-256') {
-    hash =
-      to64((C[0]<<16)|(C[10]<<8)|C[20],4)+to64((C[21]<<16)|(C[1]<<8)|C[11],4)+
-      to64((C[12]<<16)|(C[22]<<8)|C[2],4)+to64((C[3]<<16)|(C[13]<<8)|C[23],4)+
-      to64((C[24]<<16)|(C[4]<<8)|C[14],4)+to64((C[15]<<16)|(C[25]<<8)|C[5],4)+
-      to64((C[6]<<16)|(C[16]<<8)|C[26],4)+to64((C[27]<<16)|(C[7]<<8)|C[17],4)+
-      to64((C[18]<<16)|(C[28]<<8)|C[8],4)+to64((C[9]<<16)|(C[19]<<8)|C[29],4)+
-      to64((C[31]<<8)|C[30],3);
-  } else {
-    hash =
-      to64((C[0]<<16)|(C[21]<<8)|C[42],4)+to64((C[22]<<16)|(C[43]<<8)|C[1],4)+
-      to64((C[44]<<16)|(C[2]<<8)|C[23],4)+to64((C[3]<<16)|(C[24]<<8)|C[45],4)+
-      to64((C[25]<<16)|(C[46]<<8)|C[4],4)+to64((C[47]<<16)|(C[5]<<8)|C[26],4)+
-      to64((C[6]<<16)|(C[27]<<8)|C[48],4)+to64((C[28]<<16)|(C[49]<<8)|C[7],4)+
-      to64((C[50]<<16)|(C[8]<<8)|C[29],4)+to64((C[9]<<16)|(C[30]<<8)|C[51],4)+
-      to64((C[31]<<16)|(C[52]<<8)|C[10],4)+to64((C[53]<<16)|(C[11]<<8)|C[32],4)+
-      to64((C[12]<<16)|(C[33]<<8)|C[54],4)+to64((C[34]<<16)|(C[55]<<8)|C[13],4)+
-      to64((C[56]<<16)|(C[14]<<8)|C[35],4)+to64((C[15]<<16)|(C[36]<<8)|C[57],4)+
-      to64((C[37]<<16)|(C[58]<<8)|C[16],4)+to64((C[59]<<16)|(C[17]<<8)|C[38],4)+
-      to64((C[18]<<16)|(C[39]<<8)|C[60],4)+to64((C[40]<<16)|(C[61]<<8)|C[19],4)+
-      to64((C[62]<<16)|(C[20]<<8)|C[41],4)+to64(C[63],2);
+  const nFull = Math.floor(transposed.length / 3);
+  for (let i = 0; i < nFull; i++) {
+    const a = transposed[i*3], b = transposed[i*3+1], c = transposed[i*3+2];
+    hash += to64(a | (b << 8) | (c << 16), 4);
+  }
+  const rem = transposed.length % 3;
+  if (rem === 2) {
+    hash += to64(transposed[nFull*3] | (transposed[nFull*3+1] << 8), 3);
+  } else if (rem === 1) {
+    hash += to64(transposed[nFull*3], 2);
   }
 
   return `$${id}$${salt}$${hash}`;
